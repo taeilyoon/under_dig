@@ -1,59 +1,59 @@
-# Under Dig - Product Requirement Document (Part 1: Plan)
+# Under Dig - 제품 요구 사항 문서 (Part 1: 계획)
 
-## 1. Product Overview
-**App Name**: Under Dig  
-**Platform**: Andorid / iOS (Flutter)  
-**Genre**: Vertical Survival Puzzle / Roguelite  
-**Core Concept**: "Dig or Die". A tense, turn-based survival game where the player must descend an infinite vertical shaft while managing space, enemies, and HP.
+## 1. 제품 개요
+**앱 이름**: Under Dig  
+**플랫폼**: Android / iOS (Flutter)  
+**장르**: 수직 생존 퍼즐 / 로그라이트  
+**핵심 컨셉**: "Dig or Die (파거나 죽거나)". 플레이어가 공간, 적, HP를 관리하며 끝없는 수직 갱도를 내려가는 긴장감 넘치는 턴제 생존 게임.
 
-## 2. Target Audience
--   **Primary**: Mobile gamers who enjoy puzzle-strategy (e.g., *Hoplite*, *Downwell*).
--   **Secondary**: Roguelike fans looking for "pocket-sized" runs (3-5 mins).
--   **Motivation**: High stakes, quick decision making, and satisfying combo executions.
+## 2. 타겟 오디언스
+-   **주 타겟**: 퍼즐 전략 장르를 즐기는 모바일 게이머 (예: *Hoplite*, *Downwell*).
+-   **보조 타겟**: 짧고 굵은 플레이 타임(3~5분)을 선호하는 로그라이크 팬.
+-   **동기 부여**: 높은 난이도, 빠른 의사결정, 만족스러운 콤보 플레이.
 
-## 3. Core Gameplay Loop
-1.  **Descend**: Move down the 8x10 grid to escape the crushing ceiling (future feature) or enemy hordes.
-2.  **Survive**: Use strategic positioning to block, attack, or combo enemies.
-3.  **Loot**: Open chests for upgrades (HP, ATK, Skills).
-4.  **Die & Repeat**: Roguelite progression means death is frequent but rewarding (meta-progression).
+## 3. 핵심 게임플레이 루프
+1.  **하강 (Descend)**: 적의 무리나 압박해오는 천장(추가 예정)을 피해 8x10 그리드를 내려갑니다.
+2.  **생존 (Survive)**: 전략적인 위치 선정을 통해 적을 막거나, 공격하거나, 콤보를 터뜨립니다.
+3.  **파밍 (Loot)**: 상자를 열어 업그레이드(HP, 공격력, 스킬)를 획득합니다.
+4.  **사망 및 반복 (Die & Repeat)**: 로그라이트 특성상 죽음은 빈번하지만, 메타 진행을 통해 보상을 얻습니다.
 
-## 4. Feature Requirements
+## 4. 기능 요구 사항
 
-### Phase 1: MVP (Completed/In-Progress)
--   [x] **Grid System**: Responsive 8x10 grid.
--   [x] **Turn System**: Hybrid (Player Move or 2s Timer).
--   [x] **Basic Combat**: Attack, Counter-Attack, Safe Kill.
--   [x] **Enemy AI**: Vertical movement (Gravity), Blocking logic.
--   [x] **Chain Combo**: Linked enemies die together.
--   [x] **Objects**: Chests, Breakable Blocks.
+### 1단계: MVP (완료/진행 중)
+-   [x] **그리드 시스템**: 반응형 8x10 그리드.
+-   [x] **턴 시스템**: 하이브리드 방식 (플레이어 이동 또는 2초 타이머).
+-   [x] **기본 전투**: 공격, 반격, 안전한 처치(Safe Kill).
+-   [x] **적 AI**: 수직 이동(중력), 충돌 및 대기 로직.
+-   [x] **체인 콤보**: 연결된 적 동시 처치.
+-   [x] **오브젝트**: 상자(Chest), 파괴 가능한 블록.
 
-### Phase 2: Alpha (Next Steps)
--   [ ] **Game Over Loop**: Player Death -> Result Screen -> Restart.
--   [ ] **Scoring System**: Depth reached, Enemies killed, Max Combo.
--   [ ] **Level Progression**: Difficulty curve (Spawn rate increases with depth).
--   [ ] **Item System**: Chests dropping usable items (Potions, Scrolls).
+### 2단계: 알파 (다음 단계)
+-   [ ] **게임 오버 루프**: 플레이어 사망 -> 결과 화면 -> 재시작.
+-   [ ] **점수 시스템**: 도달 깊이, 처치 수, 최대 콤보.
+-   [ ] **레벨 진행**: 난이도 곡선 (깊이에 따른 스폰율 증가).
+-   [ ] **아이템 시스템**: 상자에서 사용 가능한 아이템 드롭 (포션, 주문서).
 
-### Phase 3: Beta (Polish & Depth)
--   [ ] **New Enemies**: Ranged (Archer), Fast (Slime), Tank (Golem).
--   [ ] **Skills/Upgrades**: "Action" cards or localized skills (e.g., Push, Stun).
--   [ ] **Visual Polish**: Animations for Moving, Attacking, Dying, Chain Explosions.
--   [ ] **Audio**: BGM and SFX.
+### 3단계: 베타 (폴리싱 및 깊이 추가)
+-   [ ] **신규 적**: 원거리(궁수), 고속(슬라임), 탱커(골렘).
+-   [ ] **스킬/업그레이드**: 액션 카드 또는 상황별 스킬 (예: 밀치기, 기절).
+-   [ ] **비주얼 폴리싱**: 이동, 공격, 사망, 체인 폭발 애니메이션.
+-   [ ] **오디오**: 배경음악(BGM) 및 효과음(SFX).
 
-## 5. Technical Stack
--   **Engine**: Flutter + Flame
--   **State Management**: Built-in Flame Components (Component Tree).
--   **Persistence**: `shared_preferences` (High Score), Hive/Isar (Run History).
+## 5. 기술 스택
+-   **엔진**: Flutter + Flame
+-   **상태 관리**: Flame 컴포넌트 트리(Component Tree).
+-   **데이터 저장**: `shared_preferences` (최고 점수), Hive/Isar (플레이 기록).
 
-## 6. Success Metrics (KPIs)
--   **Session Length**: Average > 5 mins.
--   **Retention**: D1 > 35%.
--   **Combo Satisfaction**: Players effectively using Chain mechanics (tracked via analytics).
+## 6. 성공 지표 (KPIs)
+-   **플레이 타임**: 평균 5분 이상.
+-   **리텐션 (잔존율)**: D1 > 35%.
+-   **콤보 만족도**: 플레이어의 체인 메카닉 활용도 (분석 툴로 추적).
 
-## 7. Roadmap & Priorities
-| Priority | Feature | Description |
+## 7. 로드맵 및 우선순위
+| 우선순위 | 기능 | 설명 |
 | :--- | :--- | :--- |
-| **P0** | Game Over | Essential loop closure. |
-| **P0** | Item System | Meaningful rewards for Chests. |
-| **P1** | Scoring | Motivation to replay. |
-| **P1** | New Enemies | Variety in gameplay. |
-| **P2** | Visual FX | Juice/Polish (Screen shake, particles). |
+| **P0** | 게임 오버 | 게임 루프의 완성을 위해 필수. |
+| **P0** | 아이템 시스템 | 상자 파밍에 의미 부여. |
+| **P1** | 점수 | 재플레이 동기 부여. |
+| **P1** | 신규 적 | 게임플레이 다양성 확보. |
+| **P2** | 비주얼 효과 | 타격감 및 완성도 향상 (화면 흔들림, 파티클). |
