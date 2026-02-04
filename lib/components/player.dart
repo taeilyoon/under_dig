@@ -76,6 +76,9 @@ class Player extends PositionComponent with KeyboardHandler {
         // Attack Animation (simple nudge for now)
         target.takeDamage(1);
 
+        // Advance Turn on Attack
+        game.advanceStep();
+
         // Don't move into the tile
         return;
       }
@@ -84,6 +87,9 @@ class Player extends PositionComponent with KeyboardHandler {
       gridY = newY;
       // TODO: Add move animation via Update or specialized Effect
       position = GridSystem.gridToWorld(gridX, gridY);
+
+      // Advance Turn on Move
+      game.advanceStep();
     }
   }
 }

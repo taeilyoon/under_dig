@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
@@ -17,6 +18,10 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   Vector2? _dragStart;
   bool _hasSwiped = false;
   static const double _swipeThreshold = 50.0;
+
+  // Turn System
+  double _timeSinceLastStep = 0.0;
+  static const double _stepThreshold = 2.0;
 
   @override
   Future<void> onLoad() async {
@@ -45,6 +50,51 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    _timeSinceLastStep += dt;
+    if (_timeSinceLastStep >= _stepThreshold) {
+      advanceStep();
+    }
+  }
+
+  /// Advances the game state by one step.
+  /// Called manually by Player action OR automatically by timer.
+  void advanceStep() {
+    _timeSinceLastStep = 0.0;
+    print("--- Step Advanced ---");
+
+    // Spawn new enemy at top
+    spawnEnemyAtTop();
+  }
+
+  void spawnEnemyAtTop() {
+    final random = Random();
+    int attempts = 0;
+
+    // Try to find an empty spot in the first row (y=0)
+    while (attempts < 10) {
+      int x = random.nextInt(GridSystem.cols);
+
+      // Don't spawn on player
+      if (_player.gridX == x && _player.gridY == 0) {
+        attempts++;
+        continue;
+      }
+
+      // Don't spawn on existing destructible
+      if (getDestructibleAt(x, 0) == null) {
+        // Spawn random HP enemy
+        int hp = random.nextInt(3) + 1; // 1, 2, or 3
+        spawnEnemy(x, 0, hp: hp);
+        break;
+      }
+      attempts++;
+    }
   }
 
   void spawnEnemy(int x, int y, {int hp = 1}) {
