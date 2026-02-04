@@ -36,5 +36,8 @@ class BreakableBlock extends PositionComponent with Destructible {
         position: size / 2,
       ),
     );
+
+    // HP Indicator
+    addHpIndicator();
   }
 }

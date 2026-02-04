@@ -44,5 +44,8 @@ class Enemy extends PositionComponent with Destructible {
       position: size / 2,
     );
     add(_visual);
+
+    // HP Indicator
+    addHpIndicator();
   }
 }
