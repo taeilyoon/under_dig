@@ -2,11 +2,18 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:under_dig/components/player.dart';
+import 'package:under_dig/components/enemy.dart';
+import 'package:under_dig/components/breakable_block.dart';
 import 'package:under_dig/managers/level_manager.dart';
+import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
 
 class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   late Player _player;
+
+  // Track all destructibles (Enemies, Blocks)
+  final List<Destructible> _destructibles = [];
+
   Vector2? _dragStart;
   bool _hasSwiped = false;
   static const double _swipeThreshold = 50.0;
@@ -22,13 +29,50 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     _player = Player();
     add(_player);
 
-    // 3. Setup Camera
+    // 3. Add Enemies with Variable HP
+    spawnEnemy(3, 3, hp: 1); // Weak (Red)
+    spawnEnemy(5, 5, hp: 2); // Medium (Purple)
+    spawnEnemy(2, 6, hp: 3); // Strong (Black)
+
+    // 4. Add Breakable Blocks
+    spawnBlock(4, 4); // Crate
+    spawnBlock(1, 1); // Crate
+
+    // 4. Setup Camera
     // Center camera on the 8x8 grid
     final gridWidth = GridSystem.cols * GridSystem.tileSize;
     final gridHeight = GridSystem.rows * GridSystem.tileSize;
 
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
+  }
+
+  void spawnEnemy(int x, int y, {int hp = 1}) {
+    if (GridSystem.isValid(x, y) && getDestructibleAt(x, y) == null) {
+      final enemy = Enemy(gridX: x, gridY: y, hp: hp);
+      add(enemy);
+      _destructibles.add(enemy);
+    }
+  }
+
+  void spawnBlock(int x, int y) {
+    if (GridSystem.isValid(x, y) && getDestructibleAt(x, y) == null) {
+      final block = BreakableBlock(gridX: x, gridY: y);
+      add(block);
+      _destructibles.add(block);
+    }
+  }
+
+  // Check if any destructible exists at target coordinates
+  Destructible? getDestructibleAt(int x, int y) {
+    for (final obj in _destructibles) {
+      if ((obj as Component).parent != null &&
+          obj.gridX == x &&
+          obj.gridY == y) {
+        return obj;
+      }
+    }
+    return null;
   }
 
   @override

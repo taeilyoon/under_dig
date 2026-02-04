@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:under_dig/game.dart';
 import 'package:under_dig/systems/grid_system.dart';
 
 class Player extends PositionComponent with KeyboardHandler {
@@ -52,11 +53,33 @@ class Player extends PositionComponent with KeyboardHandler {
     return super.onKeyEvent(event, keysPressed);
   }
 
+  @override
+  void onMount() {
+    super.onMount();
+  }
+
   void move(int dx, int dy) {
+    // Access MyGame instance
+    final game = findGame()! as MyGame;
+
     final newX = gridX + dx;
     final newY = gridY + dy;
 
     if (GridSystem.isValid(newX, newY)) {
+      // Check for destructible (Enemy or Block)
+      final target = game.getDestructibleAt(newX, newY);
+
+      if (target != null) {
+        // Bump Combat!
+        print('Attack target at $newX, $newY. HP: ${target.hp}');
+
+        // Attack Animation (simple nudge for now)
+        target.takeDamage(1);
+
+        // Don't move into the tile
+        return;
+      }
+
       gridX = newX;
       gridY = newY;
       // TODO: Add move animation via Update or specialized Effect
