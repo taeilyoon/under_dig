@@ -11,6 +11,7 @@ import 'package:under_dig/systems/grid_system.dart';
 
 class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   late Player _player;
+  Player get player => _player;
 
   // Track all destructibles (Enemies, Blocks)
   final List<Destructible> _destructibles = [];
@@ -64,11 +65,30 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   /// Advances the game state by one step.
   /// Called manually by Player action OR automatically by timer.
+  /// Advances the game state by one step.
+  /// Called manually by Player action OR automatically by timer.
   void advanceStep() {
     _timeSinceLastStep = 0.0;
     print("--- Step Advanced ---");
 
-    // Spawn new enemy at top
+    // Clean up dead/removed objects
+    _destructibles.removeWhere((d) => (d as Component).parent == null);
+
+    // 1. Enemy Turn: Move Enemies (Bottom-up to prevent overlap)
+    // Filter for Enemies only
+    final enemies = _destructibles.whereType<Enemy>().toList();
+
+    // Sort by Y descending (Process bottom enemies first so they move out of the way)
+    enemies.sort((a, b) => b.gridY.compareTo(a.gridY));
+
+    for (final enemy in enemies) {
+      if (enemy.hp > 0) {
+        // Only active enemies
+        enemy.onStep();
+      }
+    }
+
+    // 2. Spawn new enemy at top
     spawnEnemyAtTop();
   }
 

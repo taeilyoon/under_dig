@@ -4,10 +4,10 @@ import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/components/grid_entity.dart';
 
-class BreakableBlock extends GridEntity with Destructible {
+class Chest extends GridEntity with Destructible {
   late RectangleComponent _visual;
 
-  BreakableBlock({required super.gridX, required super.gridY, int hp = 2})
+  Chest({required super.gridX, required super.gridY, int hp = 1})
     : super(size: Vector2.all(GridSystem.tileSize * 0.8)) {
     initDestructible(hp);
   }
@@ -16,29 +16,33 @@ class BreakableBlock extends GridEntity with Destructible {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    position = GridSystem.gridToWorld(gridX, gridY);
-    anchor = Anchor.center;
-
-    // Visual: Brown Crate
+    // Visual: Gold Chest
     _visual = RectangleComponent(
       size: size,
-      paint: Paint()..color = const Color(0xFF8B4513), // Saddle Brown
+      paint: Paint()..color = const Color(0xFFFFD700), // Gold
       anchor: Anchor.center,
       position: size / 2,
     );
     add(_visual);
 
-    // Inner detail (lighter brown square)
+    // Lock detail
     add(
       RectangleComponent(
-        size: size * 0.6,
-        paint: Paint()..color = const Color(0xFFA0522D), // Sienna
+        size: size * 0.2,
+        paint: Paint()..color = Colors.black,
         anchor: Anchor.center,
         position: size / 2,
       ),
     );
 
-    // HP Indicator
+    // HP Indicator (Optional for Chest? Maybe just hit to open)
     addHpIndicator();
+  }
+
+  @override
+  void onDeath() {
+    print("Chest Opened! Found loot.");
+    // TODO: Drop Item
+    super.onDeath();
   }
 }

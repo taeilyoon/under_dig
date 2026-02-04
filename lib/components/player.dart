@@ -3,15 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:under_dig/game.dart';
 import 'package:under_dig/systems/grid_system.dart';
+import 'package:under_dig/components/enemy.dart'; // Import Enemy
 
 class Player extends PositionComponent with KeyboardHandler {
   int gridX = 0;
   int gridY = 0;
 
+  int hp = 10;
+  int attackPower = 1;
+
   // Visual component (using a simple rectangle for now)
   late RectangleComponent _visual;
 
   Player() : super(size: Vector2.all(GridSystem.tileSize * 0.8));
+
+  void takeDamage(int amount) {
+    hp -= amount;
+    print("Player took $amount damage! HP: $hp");
+    if (hp <= 0) {
+      print("GAME OVER");
+      // TODO: Handle Game Over
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -73,8 +86,18 @@ class Player extends PositionComponent with KeyboardHandler {
         // Bump Combat!
         print('Attack target at $newX, $newY. HP: ${target.hp}');
 
-        // Attack Animation (simple nudge for now)
-        target.takeDamage(1);
+        // Player attacks Target
+        target.takeDamage(attackPower);
+
+        // Counter-Attack: If target is Enemy AND survives, it hits back.
+        if (target is Enemy) {
+          if (target.hp > 0) {
+            print("Enemy Counter-Attacks!");
+            takeDamage(target.attackPower);
+          } else {
+            print("Enemy destroyed! Safe kill.");
+          }
+        }
 
         // Advance Turn on Attack
         game.advanceStep();

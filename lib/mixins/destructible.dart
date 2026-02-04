@@ -1,22 +1,17 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:under_dig/components/grid_entity.dart';
 
-mixin Destructible on PositionComponent {
+mixin Destructible on GridEntity {
   int hp = 1;
   int maxHp = 1;
-
-  // Grid coordinates
-  int gridX = 0;
-  int gridY = 0;
 
   // HP Indicator
   TextComponent? _hpText;
 
-  void initStats(int hp, int x, int y) {
+  void initDestructible(int hp) {
     this.hp = hp;
     this.maxHp = hp;
-    this.gridX = x;
-    this.gridY = y;
   }
 
   Future<void> addHpIndicator() async {
@@ -39,7 +34,7 @@ mixin Destructible on PositionComponent {
     _hpText?.text = '$hp';
   }
 
-  void takeDamage(int amount) {
+  void takeDamage(int amount, {bool propagate = true}) {
     hp -= amount;
     _updateHpIndicator();
 
