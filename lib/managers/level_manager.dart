@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:under_dig/game/spawn_controller.dart';
 import 'package:under_dig/systems/grid_system.dart';
+import 'package:under_dig/game.dart';
 
 class LevelManager extends Component {
   int _stageProgress = 0;
@@ -19,6 +20,9 @@ class LevelManager extends Component {
   void advanceStage() {
     _stageProgress++;
     _spawnController.updateStage(_stageProgress);
+    final game = findGame()! as MyGame;
+    game.scoreEngine.onStageAdvance();
+
     // TODO: Trigger UI update or animations for stage advancement
     print('Advanced to Stage: $_stageProgress');
     print('Current Difficulty: ${_spawnController.curve.enemyRate}');
