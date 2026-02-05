@@ -1,12 +1,27 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:under_dig/game/spawn_controller.dart';
 import 'package:under_dig/systems/grid_system.dart';
 
 class LevelManager extends Component {
+  int _stageProgress = 0;
+  late SpawnController _spawnController;
+
+  int get stageProgress => _stageProgress;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    _spawnController = SpawnController(initialStageProgress: _stageProgress);
     _drawGrid();
+  }
+
+  void advanceStage() {
+    _stageProgress++;
+    _spawnController.updateStage(_stageProgress);
+    // TODO: Trigger UI update or animations for stage advancement
+    print('Advanced to Stage: $_stageProgress');
+    print('Current Difficulty: ${_spawnController.curve.enemyRate}');
   }
 
   void _drawGrid() {
@@ -26,6 +41,15 @@ class LevelManager extends Component {
         );
         add(tile);
       }
+    }
+  }
+
+  // Logic to be called by game loop to spawn enemies/items
+  void spawnEntities() {
+    final enemyCount = _spawnController.tickSpawn();
+    // Logic to actually add Enemy components to the grid would go here
+    for (int i = 0; i < enemyCount; i++) {
+      // add(Enemy(...));
     }
   }
 }
