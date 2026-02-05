@@ -4,12 +4,29 @@ import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/components/grid_entity.dart';
 
+import 'package:under_dig/game.dart';
+import 'package:under_dig/drop/drop_manager.dart';
+
 class Chest extends GridEntity with Destructible {
   late RectangleComponent _visual;
 
   Chest({required super.gridX, required super.gridY, int hp = 1})
     : super(size: Vector2.all(GridSystem.tileSize * 0.8)) {
     initDestructible(hp);
+  }
+
+  @override
+  void onDeath() {
+    print("Chest Opened! Found loot.");
+    final game = findGame()! as MyGame;
+    final item = DropManager().dropItem(game.scoreEngine.stageProgress);
+    final success = game.inventory.addItem(item);
+    if (success) {
+      print('Added ${item.name} to inventory');
+    } else {
+      print('Inventory full!');
+    }
+    super.onDeath();
   }
 
   @override
@@ -37,12 +54,5 @@ class Chest extends GridEntity with Destructible {
 
     // HP Indicator (Optional for Chest? Maybe just hit to open)
     addHpIndicator();
-  }
-
-  @override
-  void onDeath() {
-    print("Chest Opened! Found loot.");
-    // TODO: Drop Item
-    super.onDeath();
   }
 }

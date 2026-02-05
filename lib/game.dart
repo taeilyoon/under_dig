@@ -10,12 +10,24 @@ import 'package:under_dig/components/breakable_block.dart';
 import 'package:under_dig/managers/level_manager.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
+import 'package:under_dig/score/score_engine.dart';
+import 'package:under_dig/ui/combo_tracker.dart';
+import 'package:under_dig/item/inventory.dart';
+import 'package:under_dig/managers/buff_manager.dart';
 
 class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   late Player _player;
   Player get player => _player;
 
+  late LevelManager levelManager;
+
   bool isGameStarted = false;
+
+  // Engines and Managers
+  final ScoreEngine scoreEngine = ScoreEngine();
+  final ComboTracker comboTracker = ComboTracker();
+  final Inventory inventory = Inventory();
+  final BuffManager buffManager = BuffManager();
 
   // Track all destructibles (Enemies, Blocks)
   final List<Destructible> _destructibles = [];
@@ -33,34 +45,38 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     await super.onLoad();
 
     // 1. Add Level (Grid Background)
-    add(LevelManager());
+    levelManager = LevelManager();
+    add(levelManager);
 
     // 2. Add Player
     _player = Player();
     add(_player);
 
-    // 3. Add Enemies with Variable HP
-    spawnEnemy(3, 3, hp: 1); // Weak (Red)
-    spawnEnemy(5, 5, hp: 2); // Medium (Purple)
-    spawnEnemy(2, 6, hp: 3); // Strong (Black)
+    // Initial Spawns
+    _initialSpawns();
 
-    // 4. Add Breakable Blocks
-    spawnBlock(4, 4); // Crate
-    spawnBlock(1, 1); // Crate
-
-    // 4. Setup Camera
-    // Center camera on the 8x8 grid
+    // Setup Camera
     final gridWidth = GridSystem.cols * GridSystem.tileSize;
     final gridHeight = GridSystem.rows * GridSystem.tileSize;
-
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
+  }
+
+  void _initialSpawns() {
+    spawnEnemy(3, 3, hp: 1);
+    spawnEnemy(5, 5, hp: 2);
+    spawnEnemy(2, 6, hp: 3);
+    spawnBlock(4, 4);
+    spawnBlock(1, 1);
   }
 
   @override
   void update(double dt) {
     if (!isGameStarted) return;
     super.update(dt);
+
+    // Update combo timer
+    comboTracker.tick((dt * 1000).toInt());
 
     _timeSinceLastStep += dt;
     if (_timeSinceLastStep >= _stepThreshold) {
@@ -71,51 +87,53 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   void startGame() {
     isGameStarted = true;
     overlays.remove('Lobby');
-    // Initialize or reset game state if needed
+    overlays.add('HUD');
   }
 
   void onGameOver() {
     isGameStarted = false;
+    overlays.remove('HUD');
     overlays.add('Result');
   }
 
   void resetGame() {
     isGameStarted = false;
-    // Reset player HP, position, stage, etc.
+    scoreEngine.reset();
+    comboTracker.reset();
+    inventory.clear();
+    buffManager.clear();
+
     _player.hp = 10;
     _player.gridX = 0;
     _player.gridY = 0;
     _player.position = GridSystem.gridToWorld(0, 0);
-    // Clear destructibles?
-    // This part should ideally use RestartManager
+
+    // Remove all existing destructibles
+    for (var d in _destructibles) {
+      (d as Component).removeFromParent();
+    }
+    _destructibles.clear();
+    _initialSpawns();
   }
 
-  /// Advances the game state by one step.
-  /// Called manually by Player action OR automatically by timer.
-  /// Advances the game state by one step.
-  /// Called manually by Player action OR automatically by timer.
   void advanceStep() {
     _timeSinceLastStep = 0.0;
-    print("--- Step Advanced ---");
+
+    // Process Buffs
+    buffManager.updateBuffs();
 
     // Clean up dead/removed objects
     _destructibles.removeWhere((d) => (d as Component).parent == null);
 
-    // 1. Enemy Turn: Move Enemies (Bottom-up to prevent overlap)
-    // Filter for Enemies only
     final enemies = _destructibles.whereType<Enemy>().toList();
-
-    // Sort by Y descending (Process bottom enemies first so they move out of the way)
     enemies.sort((a, b) => b.gridY.compareTo(a.gridY));
 
     for (final enemy in enemies) {
       if (enemy.hp > 0) {
-        // Only active enemies
         enemy.onStep();
       }
     }
 
-    // 2. Spawn new enemy at top
     spawnEnemyAtTop();
   }
 
@@ -123,19 +141,14 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     final random = Random();
     int attempts = 0;
 
-    // Try to find an empty spot in the first row (y=0)
     while (attempts < 10) {
       int x = random.nextInt(GridSystem.cols);
-
-      // Don't spawn on player
       if (_player.gridX == x && _player.gridY == 0) {
         attempts++;
         continue;
       }
 
-      // Don't spawn on existing destructible
       if (getDestructibleAt(x, 0) == null) {
-        // Randomly pick enemy type
         double roll = random.nextDouble();
         if (roll < 0.1) {
           spawnGolem(x, 0);
@@ -182,7 +195,6 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     }
   }
 
-  // Check if any destructible exists at target coordinates
   Destructible? getDestructibleAt(int x, int y) {
     for (final obj in _destructibles) {
       if ((obj as Component).parent != null &&
@@ -204,28 +216,22 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   @override
   void onPanUpdate(DragUpdateInfo info) {
     if (_hasSwiped || _dragStart == null) return;
-
     final currentPoint = info.eventPosition.global;
     final delta = currentPoint - _dragStart!;
-
     if (delta.length > _swipeThreshold) {
       bool isHorizontal = delta.x.abs() > delta.y.abs();
-
       if (isHorizontal) {
-        if (delta.x > 0) {
-          _player.move(1, 0); // Right
-        } else {
-          _player.move(-1, 0); // Left
-        }
+        if (delta.x > 0)
+          _player.move(1, 0);
+        else
+          _player.move(-1, 0);
       } else {
-        if (delta.y > 0) {
-          _player.move(0, 1); // Down
-        } else {
-          _player.move(0, -1); // Up
-        }
+        if (delta.y > 0)
+          _player.move(0, 1);
+        else
+          _player.move(0, -1);
       }
-
-      _hasSwiped = true; // Prevent multiple moves in one drag
+      _hasSwiped = true;
     }
   }
 

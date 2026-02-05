@@ -21,6 +21,15 @@ class Enemy extends GridEntity with Destructible {
 
   int attackPower;
 
+  @override
+  void onDeath() {
+    final game = findGame()! as MyGame;
+    game.scoreEngine.onKill();
+    game.scoreEngine.onComboIncrement();
+    game.comboTracker.increment();
+    super.onDeath();
+  }
+
   void onStep() {
     if (!isMounted) return;
     final game = findGame()! as MyGame;
