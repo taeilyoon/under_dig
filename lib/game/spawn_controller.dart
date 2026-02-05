@@ -24,10 +24,17 @@ class SpawnController {
 
   // Produce number of enemies to spawn for the current tick, based on stageProgress
   int tickSpawn() {
-    // For now, simply use the per-tick estimate. This can be extended to more complex
-    // interactions with hazardRate, itemRate, etc.
+    // Base spawn count from enemy rate
     int count = estimateEnemiesPerTick();
     if (count < 0) count = 0;
-    return count;
+    // Adjust based on hazard rate to simulate increased risk at higher depths
+    int hazardBonus = 0;
+    if (_curve.hazardRate > 0.75) {
+      hazardBonus = 2;
+    } else if (_curve.hazardRate > 0.5) {
+      hazardBonus = 1;
+    }
+    int total = (count + hazardBonus).clamp(0, 8);
+    return total;
   }
 }

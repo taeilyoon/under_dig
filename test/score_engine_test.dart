@@ -1,4 +1,5 @@
 import '../lib/score/score_engine.dart';
+import '../lib/game/spawn_controller.dart';
 
 void main() {
   // Lightweight ad-hoc tests without external test package
@@ -118,4 +119,11 @@ void main() {
     assert(d13 == 126, 'StageAdvance stage13 delta should be 126');
   }
   print('Score engine tests passed (ad-hoc).');
+}
+
+// Quick sanity for SpawnController
+void _spawnSanity() {
+  final sc = SpawnController();
+  final perTick = sc.tickSpawn();
+  assert(perTick >= 0);
 }
