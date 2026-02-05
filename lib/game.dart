@@ -4,6 +4,8 @@ import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:under_dig/components/player.dart';
 import 'package:under_dig/components/enemy.dart';
+import 'package:under_dig/components/archer.dart';
+import 'package:under_dig/components/golem.dart';
 import 'package:under_dig/components/breakable_block.dart';
 import 'package:under_dig/managers/level_manager.dart';
 import 'package:under_dig/mixins/destructible.dart';
@@ -133,9 +135,15 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
       // Don't spawn on existing destructible
       if (getDestructibleAt(x, 0) == null) {
-        // Spawn random HP enemy
-        int hp = random.nextInt(3) + 1; // 1, 2, or 3
-        spawnEnemy(x, 0, hp: hp);
+        // Randomly pick enemy type
+        double roll = random.nextDouble();
+        if (roll < 0.1) {
+          spawnGolem(x, 0);
+        } else if (roll < 0.3) {
+          spawnArcher(x, 0);
+        } else {
+          spawnEnemy(x, 0, hp: random.nextInt(3) + 1);
+        }
         break;
       }
       attempts++;
@@ -147,6 +155,22 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
       final enemy = Enemy(gridX: x, gridY: y, hp: hp);
       add(enemy);
       _destructibles.add(enemy);
+    }
+  }
+
+  void spawnArcher(int x, int y) {
+    if (GridSystem.isValid(x, y) && getDestructibleAt(x, y) == null) {
+      final archer = Archer(gridX: x, gridY: y);
+      add(archer);
+      _destructibles.add(archer);
+    }
+  }
+
+  void spawnGolem(int x, int y) {
+    if (GridSystem.isValid(x, y) && getDestructibleAt(x, y) == null) {
+      final golem = Golem(gridX: x, gridY: y);
+      add(golem);
+      _destructibles.add(golem);
     }
   }
 

@@ -8,7 +8,7 @@ import 'package:under_dig/components/grid_entity.dart';
 
 class Enemy extends GridEntity with Destructible {
   // Visual component
-  late RectangleComponent _visual;
+  late RectangleComponent visual;
 
   Enemy({
     required super.gridX,
@@ -134,13 +134,13 @@ class Enemy extends GridEntity with Destructible {
     }
 
     // Visual representation
-    _visual = RectangleComponent(
+    visual = RectangleComponent(
       size: size,
       paint: Paint()..color = color,
       anchor: Anchor.center,
       position: size / 2,
     );
-    add(_visual);
+    add(visual);
 
     // HP Indicator
     addHpIndicator();
