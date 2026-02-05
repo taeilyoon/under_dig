@@ -72,6 +72,22 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     // Initialize or reset game state if needed
   }
 
+  void onGameOver() {
+    isGameStarted = false;
+    overlays.add('Result');
+  }
+
+  void resetGame() {
+    isGameStarted = false;
+    // Reset player HP, position, stage, etc.
+    _player.hp = 10;
+    _player.gridX = 0;
+    _player.gridY = 0;
+    _player.position = GridSystem.gridToWorld(0, 0);
+    // Clear destructibles?
+    // This part should ideally use RestartManager
+  }
+
   /// Advances the game state by one step.
   /// Called manually by Player action OR automatically by timer.
   /// Advances the game state by one step.

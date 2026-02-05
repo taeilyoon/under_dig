@@ -22,7 +22,8 @@ class Player extends PositionComponent with KeyboardHandler {
     print("Player took $amount damage! HP: $hp");
     if (hp <= 0) {
       print("GAME OVER");
-      // TODO: Handle Game Over
+      final game = findGame()! as MyGame;
+      game.onGameOver();
     }
   }
 
