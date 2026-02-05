@@ -13,6 +13,8 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   late Player _player;
   Player get player => _player;
 
+  bool isGameStarted = false;
+
   // Track all destructibles (Enemies, Blocks)
   final List<Destructible> _destructibles = [];
 
@@ -55,12 +57,19 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   @override
   void update(double dt) {
+    if (!isGameStarted) return;
     super.update(dt);
 
     _timeSinceLastStep += dt;
     if (_timeSinceLastStep >= _stepThreshold) {
       advanceStep();
     }
+  }
+
+  void startGame() {
+    isGameStarted = true;
+    overlays.remove('Lobby');
+    // Initialize or reset game state if needed
   }
 
   /// Advances the game state by one step.
@@ -147,6 +156,7 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   @override
   void onPanStart(DragStartInfo info) {
+    if (!isGameStarted) return;
     _dragStart = info.eventPosition.global;
     _hasSwiped = false;
   }
