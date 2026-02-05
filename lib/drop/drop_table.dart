@@ -9,18 +9,19 @@ class DropPoolEntry {
 
 List<DropPoolEntry> getDropPool(int stageProgress) {
   // Simple staged drop pool example
-  final rng = math.Random(stageProgress);
   final common = Item(
     id: 'potion_small',
     name: 'Small Potion',
-    type: ItemType.Potion,
-    effects: {'hp': 10},
+    description: 'Heals 10 HP',
+    type: ItemType.potion,
+    effects: [ItemEffect(type: 'hp_restore', value: 10)],
   );
   final rare = Item(
     id: 'scroll_power',
     name: 'Scroll of Power',
-    type: ItemType.Scroll,
-    effects: {'atk': 2},
+    description: 'Increases attack by 2 for 5 turns',
+    type: ItemType.scroll,
+    effects: [ItemEffect(type: 'atk_boost', value: 2, duration: 5)],
   );
   return [
     DropPoolEntry(
