@@ -162,10 +162,8 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
         double roll = random.nextDouble();
         if (roll < 0.1) {
           spawnGolem(x, 0);
-        } else if (roll < 0.2) {
-          spawnPotion(x, 0); // 10% chance for potion
-        } else if (roll < 0.4) {
-          spawnArcher(x, 0); // 20% chance for archer
+        } else if (roll < 0.25) {
+          spawnPotion(x, 0); // Increase potion chance slightly
         } else {
           spawnEnemy(x, 0, hp: random.nextInt(3) + 1);
         }
