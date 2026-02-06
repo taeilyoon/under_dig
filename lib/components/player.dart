@@ -4,21 +4,25 @@ import 'package:flutter/services.dart';
 import 'package:under_dig/game.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/components/enemy.dart'; // Import Enemy
+import 'package:under_dig/components/hp_bar.dart';
 
 class Player extends PositionComponent with KeyboardHandler {
   int gridX = 0;
   int gridY = 0;
 
   int hp = 10;
+  int maxHp = 10;
   int attackPower = 1;
 
-  // Visual component (using a simple rectangle for now)
+  // Visual components
   late RectangleComponent _visual;
+  late HpBarComponent _hpBar;
 
   Player() : super(size: Vector2.all(GridSystem.tileSize * 0.8));
 
   void takeDamage(int amount) {
     hp -= amount;
+    _hpBar.updateHp(hp);
     print("Player took $amount damage! HP: $hp");
     if (hp <= 0) {
       print("GAME OVER");
@@ -45,6 +49,16 @@ class Player extends PositionComponent with KeyboardHandler {
       position: size / 2, // Relative to parent
     );
     add(_visual);
+
+    // 2. Add HP Bar
+    _hpBar = HpBarComponent(
+      maxHp: maxHp.toDouble(),
+      currentHp: hp.toDouble(),
+      width: size.x,
+      height: 6,
+    );
+    _hpBar.position = Vector2(0, -10); // Position above the player
+    add(_hpBar);
   }
 
   @override
