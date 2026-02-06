@@ -36,8 +36,8 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   Vector2? _dragStart;
   bool _hasSwiped = false;
-  static const double _swipeThreshold = 50.0;
-
+  static const double _swipeThreshold =
+      25.0; // Lower threshold for better response
   // Turn System
   double _timeSinceLastStep = 0.0;
   static const double _stepThreshold = 2.0;
