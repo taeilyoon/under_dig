@@ -1,12 +1,14 @@
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:under_dig/game.dart';
 import 'package:under_dig/systems/grid_system.dart';
-import 'package:under_dig/components/enemy.dart'; // Import Enemy
+import 'package:under_dig/components/enemy.dart';
 import 'package:under_dig/components/hp_bar.dart';
 
-class Player extends PositionComponent with KeyboardHandler {
+class Player extends PositionComponent
+    with KeyboardHandler, HasGameRef<MyGame> {
   int gridX = 0;
   int gridY = 0;
 
@@ -15,7 +17,7 @@ class Player extends PositionComponent with KeyboardHandler {
   int attackPower = 1;
 
   // Visual components
-  late RectangleComponent _visual;
+  late PositionComponent visual;
   late HpBarComponent _hpBar;
 
   Player() : super(size: Vector2.all(GridSystem.tileSize * 0.8));
@@ -24,10 +26,18 @@ class Player extends PositionComponent with KeyboardHandler {
     hp -= amount;
     _hpBar.updateHp(hp);
     print("Player took $amount damage! HP: $hp");
+
+    // Simple damage flash effect
+    visual.add(
+      ColorEffect(
+        Colors.red,
+        EffectController(duration: 0.1, reverseDuration: 0.1),
+      ),
+    );
+
     if (hp <= 0) {
       print("GAME OVER");
-      final game = findGame()! as MyGame;
-      game.onGameOver();
+      gameRef.onGameOver();
     }
   }
 
@@ -35,6 +45,14 @@ class Player extends PositionComponent with KeyboardHandler {
     hp = (hp + amount).clamp(0, maxHp);
     _hpBar.updateHp(hp);
     print("Player healed $amount! Current HP: $hp");
+
+    // Heal flash effect
+    visual.add(
+      ColorEffect(
+        Colors.green,
+        EffectController(duration: 0.1, reverseDuration: 0.1),
+      ),
+    );
   }
 
   @override
@@ -47,14 +65,15 @@ class Player extends PositionComponent with KeyboardHandler {
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    // Visual representation (Blue Box)
-    _visual = RectangleComponent(
+    // Load Sprite
+    final sprite = await gameRef.loadSprite('player/attack_down.png');
+    visual = SpriteComponent(
+      sprite: sprite,
       size: size,
-      paint: Paint()..color = const Color(0xFF0000FF),
       anchor: Anchor.center,
-      position: size / 2, // Relative to parent
+      position: size / 2,
     );
-    add(_visual);
+    add(visual);
 
     // 2. Add HP Bar
     _hpBar = HpBarComponent(
@@ -87,53 +106,52 @@ class Player extends PositionComponent with KeyboardHandler {
     return super.onKeyEvent(event, keysPressed);
   }
 
-  @override
-  void onMount() {
-    super.onMount();
-  }
-
   void move(int dx, int dy) {
-    // Access MyGame instance
-    final game = findGame()! as MyGame;
-
     final newX = gridX + dx;
     final newY = gridY + dy;
 
     if (GridSystem.isValid(newX, newY)) {
-      // Check for destructible (Enemy or Block)
-      final target = game.getDestructibleAt(newX, newY);
+      final target = gameRef.getDestructibleAt(newX, newY);
 
       if (target != null) {
         // Bump Combat!
-        print('Attack target at $newX, $newY. HP: ${target.hp}');
+        _performBumpAnimation(dx, dy);
 
-        // Player attacks Target
         target.takeDamage(attackPower);
 
-        // Counter-Attack: If target is Enemy AND survives, it hits back.
         if (target is Enemy) {
           if (target.hp > 0) {
-            print("Enemy Counter-Attacks!");
             takeDamage(target.attackPower);
-          } else {
-            print("Enemy destroyed! Safe kill.");
           }
         }
 
-        // Advance Turn on Attack
-        game.advanceStep();
-
-        // Don't move into the tile
+        gameRef.advanceStep();
         return;
       }
 
       gridX = newX;
       gridY = newY;
-      // TODO: Add move animation via Update or specialized Effect
-      position = GridSystem.gridToWorld(gridX, gridY);
 
-      // Advance Turn on Move
-      game.advanceStep();
+      // Move Animation
+      final targetPosition = GridSystem.gridToWorld(gridX, gridY);
+      add(
+        MoveEffect.to(
+          targetPosition,
+          EffectController(duration: 0.1, curve: Curves.easeInOut),
+        ),
+      );
+
+      gameRef.advanceStep();
     }
+  }
+
+  void _performBumpAnimation(int dx, int dy) {
+    final bumpVector = Vector2(dx.toDouble(), dy.toDouble()) * 10;
+    add(
+      MoveEffect.by(
+        bumpVector,
+        EffectController(duration: 0.05, reverseDuration: 0.05),
+      ),
+    );
   }
 }
