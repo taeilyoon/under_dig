@@ -126,12 +126,21 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     // Clean up dead/removed objects
     _destructibles.removeWhere((d) => (d as Component).parent == null);
 
-    final enemies = _destructibles.whereType<Enemy>().toList();
-    enemies.sort((a, b) => b.gridY.compareTo(a.gridY));
+    // 1. Actors Turn: Move Enemies and Potions (Bottom-up to prevent overlap)
+    final actors = _destructibles
+        .where((d) => d is Enemy || d is PotionObject)
+        .toList();
 
-    for (final enemy in enemies) {
-      if (enemy.hp > 0) {
-        enemy.onStep();
+    // Sort by Y descending (Process bottom actors first so they move out of the way)
+    actors.sort((a, b) => b.gridY.compareTo(a.gridY));
+
+    for (final actor in actors) {
+      if (actor.hp > 0) {
+        if (actor is Enemy) {
+          actor.onStep();
+        } else if (actor is PotionObject) {
+          actor.onStep();
+        }
       }
     }
 
