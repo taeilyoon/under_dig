@@ -64,8 +64,8 @@ flutter:
     - assets/images/items/
     - assets/images/objects/
     - assets/images/player/
-    - assets/tiles/
-    - assets/tiles/individual/
+    - assets/images/tiles/
+    - assets/images/tiles/individual/
     - assets/audio/music/
     - assets/audio/sfx/
     - assets/fonts/

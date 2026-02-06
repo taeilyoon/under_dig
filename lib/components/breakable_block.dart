@@ -8,6 +8,7 @@ import 'package:under_dig/game.dart';
 
 class BreakableBlock extends GridEntity with Destructible, HasGameRef<MyGame> {
   late PositionComponent visual;
+  bool _isVisualInitialized = false;
 
   BreakableBlock({required super.gridX, required super.gridY, int hp = 2})
     : super(size: Vector2.all(GridSystem.tileSize * 0.8)) {
@@ -16,6 +17,18 @@ class BreakableBlock extends GridEntity with Destructible, HasGameRef<MyGame> {
 
   @override
   void onDeath() {
+    // Hide UI elements immediately
+    for (var child in children) {
+      if (child != visual) {
+        child.removeFromParent();
+      }
+    }
+
+    if (!_isVisualInitialized) {
+      removeFromParent();
+      return;
+    }
+
     // Death Animation
     visual.add(
       ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.15)),
@@ -54,13 +67,25 @@ class BreakableBlock extends GridEntity with Destructible, HasGameRef<MyGame> {
     anchor = Anchor.center;
 
     // Visual: Wall Sprite
-    final sprite = await gameRef.loadSprite('tiles/wall.png');
-    visual = SpriteComponent(
-      sprite: sprite,
-      size: size,
-      anchor: Anchor.center,
-      position: size / 2,
-    );
+    try {
+      final sprite = await gameRef.loadSprite('tiles/wall.png');
+      visual = SpriteComponent(
+        sprite: sprite,
+        size: size,
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    } catch (e) {
+      // Fallback to Rectangle if sprite fails to load
+      visual = RectangleComponent(
+        size: size,
+        paint: Paint()..color = const Color(0xFF8B4513),
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    }
+
+    _isVisualInitialized = true;
     add(visual);
 
     // HP Indicator

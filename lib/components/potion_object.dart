@@ -53,7 +53,11 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
     print("Potion Destroyed! Healing Player.");
     gameRef.player.heal(1); // Heal 1 HP on death
 
+    // Remove UI elements immediately
+    hpBar.removeFromParent();
+
     // Death Animation
+
     visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
     visual.add(
       OpacityEffect.to(

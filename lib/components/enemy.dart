@@ -30,7 +30,11 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     gameRef.scoreEngine.onComboIncrement();
     gameRef.comboTracker.increment();
 
+    // Remove UI elements immediately so they don't linger during animation
+    hpBar.removeFromParent();
+
     // Death Animation: Scale down and fade
+
     visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
     visual.add(
       OpacityEffect.to(
