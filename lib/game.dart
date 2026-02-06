@@ -71,10 +71,23 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
 
-    // Auto-zoom to fit the grid with some padding
-    final zoomX = size.x / (gridWidth + 100);
-    final zoomY = size.y / (gridHeight + 200); // Leave space for HUD
-    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.5, 2.0);
+    // Responsive Zoom:
+    // We want the grid to fit within the screen while leaving room for the UI.
+    // Phones are usually tall (Portrait), so zoomY (height) is the limiting factor for spacing,
+    // but zoomX (width) might be the limiting factor for the grid itself.
+
+    const double paddingX = 40.0;
+    const double paddingY = 250.0; // More space for Header and Footer
+
+    final availableWidth = size.x - paddingX;
+    final availableHeight = size.y - paddingY;
+
+    final zoomX = availableWidth / gridWidth;
+    final zoomY = availableHeight / gridHeight;
+
+    // Use the smaller zoom to ensure it fits both ways,
+    // and lower the clamp floor to 0.3 for very small screens.
+    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.3, 3.0);
   }
 
   @override
