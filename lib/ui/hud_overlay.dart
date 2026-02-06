@@ -30,104 +30,202 @@ class _HudOverlayState extends State<HudOverlay> {
   @override
   Widget build(BuildContext context) {
     final game = widget.game;
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
         children: [
-          // Top Bar: Stats
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStat('HP', '${game.player.hp}', color: Colors.red),
-              _buildStat(
-                'STAGE',
-                '${game.scoreEngine.stageProgress}',
-                color: Colors.blue,
-              ),
-              _buildStat(
-                'SCORE',
-                '${game.scoreEngine.total}',
-                color: Colors.amber,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Combo
-          if (game.comboTracker.combo > 1)
-            Row(
-              children: [
-                Text(
-                  '${game.comboTracker.combo} COMBO!',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
+          // Header Area
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                 ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 100,
-                  child: LinearProgressIndicator(
-                    value: (game.comboTracker.timeLeftMs / 3000).clamp(
-                      0.0,
-                      1.0,
-                    ),
-                    backgroundColor: Colors.white24,
-                    color: Colors.orange,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildStatCard(
+                    'HP',
+                    '${game.player.hp}',
+                    Colors.redAccent,
+                    Icons.favorite,
                   ),
-                ),
-              ],
+                  _buildStatCard(
+                    'STAGE',
+                    '${game.scoreEngine.stageProgress}',
+                    Colors.blueAccent,
+                    Icons.layers,
+                  ),
+                  _buildStatCard(
+                    'SCORE',
+                    '${game.scoreEngine.total}',
+                    Colors.amber,
+                    Icons.monetization_on,
+                  ),
+                ],
+              ),
             ),
-          const Spacer(),
-          // Bottom Bar: Inventory
-          Row(
-            children: List.generate(game.inventory.maxSlots, (index) {
-              final item = game.inventory.slots[index];
-              return Container(
-                width: 50,
-                height: 50,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  border: Border.all(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
+          ),
+
+          // Middle Area: Combo Notification
+          if (game.comboTracker.combo > 1)
+            Align(
+              alignment: const Alignment(0, -0.4), // Slightly above center
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${game.comboTracker.combo} COMBO!',
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.orange,
+                      fontStyle: FontStyle.italic,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          offset: const Offset(2, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 150,
+                    height: 8,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (game.comboTracker.timeLeftMs / 3000).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                        backgroundColor: Colors.black,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Footer Area: Inventory
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black.withOpacity(0.9), Colors.transparent],
                 ),
-                child: item != null
-                    ? Tooltip(
-                        message: '${item.name}\n${item.description}',
-                        child: const Center(
-                          child: Icon(
-                            Icons.star, // Simplified icon for now
-                            color: Colors.white,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'INVENTORY',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(game.inventory.maxSlots, (index) {
+                      final item = game.inventory.slots[index];
+                      return Container(
+                        width: 54,
+                        height: 54,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: item != null
+                                ? Colors.white70
+                                : Colors.white10,
+                            width: 1.5,
                           ),
                         ),
-                      )
-                    : null,
-              );
-            }),
+                        child: item != null
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.star,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  // TODO: Use item logic
+                                },
+                              )
+                            : null,
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStat(String label, String value, {required Color color}) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: color.withOpacity(0.7), fontSize: 12),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+  Widget _buildStatCard(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color.withOpacity(0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
