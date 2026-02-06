@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
@@ -12,7 +13,7 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
 
   PotionObject({required super.gridX, required super.gridY})
     : super(size: Vector2.all(GridSystem.tileSize * 0.7)) {
-    initDestructible(2); // 2 HP
+    initDestructible(2); // 2 HP as requested
   }
 
   void onStep() {
@@ -35,7 +36,15 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
     // Move if valid
     if (GridSystem.isValid(nextX, nextY)) {
       gridY = nextY;
-      position = GridSystem.gridToWorld(gridX, gridY);
+
+      // Move Animation
+      final targetPosition = GridSystem.gridToWorld(gridX, gridY);
+      add(
+        MoveEffect.to(
+          targetPosition,
+          EffectController(duration: 0.15, curve: Curves.easeInOut),
+        ),
+      );
     }
   }
 
@@ -43,7 +52,16 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
   void onDeath() {
     print("Potion Destroyed! Healing Player.");
     gameRef.player.heal(1); // Heal 1 HP on death
-    super.onDeath();
+
+    // Death Animation
+    visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
+    visual.add(
+      OpacityEffect.to(
+        0,
+        EffectController(duration: 0.2),
+        onComplete: () => removeFromParent(),
+      ),
+    );
   }
 
   @override
@@ -59,6 +77,14 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
     }
     super.takeDamage(amount, propagate: propagate);
     hpBar.updateHp(hp);
+
+    // Damage Flash
+    visual.add(
+      ColorEffect(
+        Colors.white,
+        EffectController(duration: 0.05, reverseDuration: 0.05),
+      ),
+    );
   }
 
   Set<PotionObject> _findConnectedPotions(MyGame game) {
@@ -111,6 +137,7 @@ class PotionObject extends GridEntity with Destructible, HasGameRef<MyGame> {
     );
     add(visual);
 
+    // HP Bar
     hpBar = HpBarComponent(
       maxHp: maxHp.toDouble(),
       currentHp: hp.toDouble(),

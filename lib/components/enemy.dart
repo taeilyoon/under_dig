@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
@@ -28,7 +29,16 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     gameRef.scoreEngine.onKill();
     gameRef.scoreEngine.onComboIncrement();
     gameRef.comboTracker.increment();
-    super.onDeath();
+
+    // Death Animation: Scale down and fade
+    visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
+    visual.add(
+      OpacityEffect.to(
+        0,
+        EffectController(duration: 0.2),
+        onComplete: () => removeFromParent(),
+      ),
+    );
   }
 
   void onStep() {
@@ -40,24 +50,26 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
 
     // 1. Check Collision with Player
     if (gameRef.player.gridX == nextX && gameRef.player.gridY == nextY) {
-      // Blocked by Player (Do not attack, just stop)
       return;
     }
 
     // 2. Check collisions with other blocks/enemies
     if (gameRef.getDestructibleAt(nextX, nextY) != null) {
-      // Something in the way (Block or another Enemy)
-      // Stay for now.
       return;
     }
 
     // 3. Move if valid
     if (GridSystem.isValid(nextX, nextY)) {
       gridY = nextY;
-      position = GridSystem.gridToWorld(gridX, gridY);
-    } else {
-      // Out of bounds (bottom) -> Stop
-      return;
+
+      // Move Animation
+      final targetPosition = GridSystem.gridToWorld(gridX, gridY);
+      add(
+        MoveEffect.to(
+          targetPosition,
+          EffectController(duration: 0.15, curve: Curves.easeInOut),
+        ),
+      );
     }
   }
 
@@ -74,6 +86,14 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     }
     super.takeDamage(amount, propagate: propagate);
     hpBar.updateHp(hp);
+
+    // Damage Flash
+    visual.add(
+      ColorEffect(
+        Colors.red,
+        EffectController(duration: 0.05, reverseDuration: 0.05),
+      ),
+    );
   }
 
   Set<Enemy> _findConnectedEnemies(MyGame game) {
@@ -84,7 +104,6 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     while (queue.isNotEmpty) {
       final current = queue.removeAt(0);
 
-      // Check neighbors (Up, Down, Left, Right)
       final neighbors = [
         _getEnemyAt(game, current.gridX, current.gridY - 1),
         _getEnemyAt(game, current.gridX, current.gridY + 1),
@@ -105,7 +124,6 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
   }
 
   Enemy? _getEnemyAt(MyGame game, int x, int y) {
-    // We can use game.getDestructibleAt, but need to check if it's an Enemy
     final target = game.getDestructibleAt(x, y);
     if (target is Enemy) {
       return target;
@@ -117,11 +135,9 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Set initial position based on grid
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    // Determine color/sprite based on HP
     Color? color;
     Sprite? sprite;
     switch (maxHp) {
@@ -138,7 +154,6 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
         color = const Color(0xFF00FF00); // Green (Debug)
     }
 
-    // Visual representation
     if (sprite != null) {
       visual = SpriteComponent(
         sprite: sprite,
@@ -156,7 +171,6 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     }
     add(visual);
 
-    // HP Bar
     hpBar = HpBarComponent(
       maxHp: maxHp.toDouble(),
       currentHp: hp.toDouble(),
@@ -166,7 +180,6 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     hpBar.position = Vector2(0, -size.y / 2 - 5);
     add(hpBar);
 
-    // HP Indicator
     addHpIndicator();
   }
 }
