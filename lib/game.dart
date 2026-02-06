@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
@@ -42,6 +43,9 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   static const double _stepThreshold = 2.0;
 
   @override
+  Color backgroundColor() => const Color(0xFF1A1A1A);
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
 
@@ -56,11 +60,29 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     // Initial Spawns
     _initialSpawns();
 
-    // Setup Camera
+    // Setup Camera to center the 8x8 grid
+    _updateCamera();
+  }
+
+  void _updateCamera() {
     final gridWidth = GridSystem.cols * GridSystem.tileSize;
     final gridHeight = GridSystem.rows * GridSystem.tileSize;
+
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
+
+    // Auto-zoom to fit the grid with some padding
+    final zoomX = size.x / (gridWidth + 100);
+    final zoomY = size.y / (gridHeight + 200); // Leave space for HUD
+    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.5, 2.0);
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    if (isMounted) {
+      _updateCamera();
+    }
   }
 
   void _initialSpawns() {
@@ -109,7 +131,6 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     _player.gridY = 0;
     _player.position = GridSystem.gridToWorld(0, 0);
 
-    // Remove all existing destructibles
     for (var d in _destructibles) {
       (d as Component).removeFromParent();
     }
@@ -119,19 +140,13 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   void advanceStep() {
     _timeSinceLastStep = 0.0;
-
-    // Process Buffs
     buffManager.updateBuffs();
-
-    // Clean up dead/removed objects
     _destructibles.removeWhere((d) => (d as Component).parent == null);
 
-    // 1. Actors Turn: Move Enemies and Potions (Bottom-up to prevent overlap)
     final actors = _destructibles
         .where((d) => d is Enemy || d is PotionObject)
         .toList();
 
-    // Sort by Y descending (Process bottom actors first so they move out of the way)
     actors.sort((a, b) => b.gridY.compareTo(a.gridY));
 
     for (final actor in actors) {
@@ -163,7 +178,7 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
         if (roll < 0.1) {
           spawnGolem(x, 0);
         } else if (roll < 0.25) {
-          spawnPotion(x, 0); // Increase potion chance slightly
+          spawnPotion(x, 0);
         } else {
           spawnEnemy(x, 0, hp: random.nextInt(3) + 1);
         }
