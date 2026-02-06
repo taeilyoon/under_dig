@@ -21,5 +21,9 @@ class Golem extends Enemy {
     visual.paint.color = Colors.grey;
     // Make Golem slightly larger
     visual.size = size * 1.1;
+
+    // Adjust HP bar for larger Golem
+    hpBar.size = Vector2(size.x * 1.2, 5);
+    hpBar.position = Vector2(0, -size.y / 2 - 8);
   }
 }
