@@ -5,10 +5,12 @@ import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/game.dart';
 
 import 'package:under_dig/components/grid_entity.dart';
+import 'package:under_dig/components/hp_bar.dart';
 
 class Enemy extends GridEntity with Destructible {
   // Visual component
   late RectangleComponent visual;
+  late HpBarComponent hpBar;
 
   Enemy({
     required super.gridX,
@@ -67,11 +69,6 @@ class Enemy extends GridEntity with Destructible {
       final game = findGame()! as MyGame;
       final connected = _findConnectedEnemies(game);
 
-      // Minimum 3 or 4 to trigger? User said "4 attached -> all 4 damaged".
-      // Let's assume ANY connection propagates for now, or check count.
-      // "4개가 붙어 있으면" implies a threshold, but usually in these games
-      // chained blocks always break together. Let's make it always propagate for same color.
-
       for (final enemy in connected) {
         if (enemy != this) {
           enemy.takeDamage(amount, propagate: false);
@@ -79,6 +76,7 @@ class Enemy extends GridEntity with Destructible {
       }
     }
     super.takeDamage(amount, propagate: propagate);
+    hpBar.updateHp(hp);
   }
 
   Set<Enemy> _findConnectedEnemies(MyGame game) {
@@ -150,6 +148,16 @@ class Enemy extends GridEntity with Destructible {
       position: size / 2,
     );
     add(visual);
+
+    // HP Bar
+    hpBar = HpBarComponent(
+      maxHp: maxHp.toDouble(),
+      currentHp: hp.toDouble(),
+      width: size.x,
+      height: 4,
+    );
+    hpBar.position = Vector2(0, -size.y / 2 - 5);
+    add(hpBar);
 
     // HP Indicator
     addHpIndicator();
