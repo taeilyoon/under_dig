@@ -7,6 +7,7 @@ import 'package:under_dig/components/enemy.dart';
 import 'package:under_dig/components/archer.dart';
 import 'package:under_dig/components/golem.dart';
 import 'package:under_dig/components/breakable_block.dart';
+import 'package:under_dig/components/potion_object.dart';
 import 'package:under_dig/managers/level_manager.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
@@ -152,8 +153,10 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
         double roll = random.nextDouble();
         if (roll < 0.1) {
           spawnGolem(x, 0);
-        } else if (roll < 0.3) {
-          spawnArcher(x, 0);
+        } else if (roll < 0.2) {
+          spawnPotion(x, 0); // 10% chance for potion
+        } else if (roll < 0.4) {
+          spawnArcher(x, 0); // 20% chance for archer
         } else {
           spawnEnemy(x, 0, hp: random.nextInt(3) + 1);
         }
@@ -184,6 +187,14 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
       final golem = Golem(gridX: x, gridY: y);
       add(golem);
       _destructibles.add(golem);
+    }
+  }
+
+  void spawnPotion(int x, int y) {
+    if (GridSystem.isValid(x, y) && getDestructibleAt(x, y) == null) {
+      final potion = PotionObject(gridX: x, gridY: y);
+      add(potion);
+      _destructibles.add(potion);
     }
   }
 

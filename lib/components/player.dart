@@ -31,6 +31,12 @@ class Player extends PositionComponent with KeyboardHandler {
     }
   }
 
+  void heal(int amount) {
+    hp = (hp + amount).clamp(0, maxHp);
+    _hpBar.updateHp(hp);
+    print("Player healed $amount! Current HP: $hp");
+  }
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
