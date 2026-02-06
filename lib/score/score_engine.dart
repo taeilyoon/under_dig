@@ -1,5 +1,5 @@
-// Score engine for Under Dig
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 enum ScoreEvent { StageAdvance, Kill, Combo }
 
@@ -18,7 +18,7 @@ class ScoreConfig {
   });
 }
 
-class ScoreEngine {
+class ScoreEngine extends ChangeNotifier {
   final ScoreConfig config;
   int _total = 0;
   int stageProgress = 0;
@@ -33,12 +33,14 @@ class ScoreEngine {
   void onStageAdvance() {
     stageProgress += 1;
     _total += _stageProgressPoints(stageProgress);
+    notifyListeners();
   }
 
   int onKill() {
     kills += 1;
     int delta = config.killPoints;
     _total += delta;
+    notifyListeners();
     return delta;
   }
 
@@ -46,12 +48,14 @@ class ScoreEngine {
     combo += 1;
     int delta = _comboBonus(combo);
     _total += delta;
+    notifyListeners();
     return delta;
   }
 
   int onComboReset() {
     int prev = combo;
     combo = 0;
+    notifyListeners();
     return prev;
   }
 
@@ -92,5 +96,6 @@ class ScoreEngine {
     stageProgress = 0;
     kills = 0;
     combo = 0;
+    notifyListeners();
   }
 }

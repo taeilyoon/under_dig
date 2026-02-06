@@ -1,13 +1,35 @@
 import 'package:flutter/material.dart';
 import '../game.dart';
 
-class HudOverlay extends StatelessWidget {
+class HudOverlay extends StatefulWidget {
   final MyGame game;
 
   const HudOverlay({super.key, required this.game});
 
   @override
+  State<HudOverlay> createState() => _HudOverlayState();
+}
+
+class _HudOverlayState extends State<HudOverlay> {
+  @override
+  void initState() {
+    super.initState();
+    widget.game.scoreEngine.addListener(_update);
+  }
+
+  @override
+  void dispose() {
+    widget.game.scoreEngine.removeListener(_update);
+    super.dispose();
+  }
+
+  void _update() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final game = widget.game;
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
