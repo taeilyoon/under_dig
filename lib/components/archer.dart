@@ -32,6 +32,8 @@ class Archer extends Enemy {
   Future<void> onLoad() async {
     await super.onLoad();
     // Special Archer color
-    visual.paint.color = Colors.orange;
+    if (visual is RectangleComponent) {
+      (visual as RectangleComponent).paint.color = Colors.orange;
+    }
   }
 }

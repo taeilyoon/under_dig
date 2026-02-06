@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/components/grid_entity.dart';
+import 'package:under_dig/game.dart';
 
-class BreakableBlock extends GridEntity with Destructible {
-  late RectangleComponent _visual;
+class BreakableBlock extends GridEntity with Destructible, HasGameRef<MyGame> {
+  late PositionComponent _visual;
 
   BreakableBlock({required super.gridX, required super.gridY, int hp = 2})
     : super(size: Vector2.all(GridSystem.tileSize * 0.8)) {
@@ -19,24 +20,15 @@ class BreakableBlock extends GridEntity with Destructible {
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    // Visual: Brown Crate
-    _visual = RectangleComponent(
+    // Visual: Wall Sprite
+    final sprite = await gameRef.loadSprite('tiles/wall.png');
+    _visual = SpriteComponent(
+      sprite: sprite,
       size: size,
-      paint: Paint()..color = const Color(0xFF8B4513), // Saddle Brown
       anchor: Anchor.center,
       position: size / 2,
     );
     add(_visual);
-
-    // Inner detail (lighter brown square)
-    add(
-      RectangleComponent(
-        size: size * 0.6,
-        paint: Paint()..color = const Color(0xFFA0522D), // Sienna
-        anchor: Anchor.center,
-        position: size / 2,
-      ),
-    );
 
     // HP Indicator
     addHpIndicator();
