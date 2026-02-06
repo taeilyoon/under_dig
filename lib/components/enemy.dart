@@ -7,9 +7,9 @@ import 'package:under_dig/game.dart';
 import 'package:under_dig/components/grid_entity.dart';
 import 'package:under_dig/components/hp_bar.dart';
 
-class Enemy extends GridEntity with Destructible {
+class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
   // Visual component
-  late RectangleComponent visual;
+  late PositionComponent visual;
   late HpBarComponent hpBar;
 
   Enemy({
@@ -25,29 +25,27 @@ class Enemy extends GridEntity with Destructible {
 
   @override
   void onDeath() {
-    final game = findGame()! as MyGame;
-    game.scoreEngine.onKill();
-    game.scoreEngine.onComboIncrement();
-    game.comboTracker.increment();
+    gameRef.scoreEngine.onKill();
+    gameRef.scoreEngine.onComboIncrement();
+    gameRef.comboTracker.increment();
     super.onDeath();
   }
 
   void onStep() {
     if (!isMounted) return;
-    final game = findGame()! as MyGame;
 
     // Calculate new position (Down 1)
     int nextX = gridX;
     int nextY = gridY + 1;
 
     // 1. Check Collision with Player
-    if (game.player.gridX == nextX && game.player.gridY == nextY) {
+    if (gameRef.player.gridX == nextX && gameRef.player.gridY == nextY) {
       // Blocked by Player (Do not attack, just stop)
       return;
     }
 
     // 2. Check collisions with other blocks/enemies
-    if (game.getDestructibleAt(nextX, nextY) != null) {
+    if (gameRef.getDestructibleAt(nextX, nextY) != null) {
       // Something in the way (Block or another Enemy)
       // Stay for now.
       return;
@@ -66,8 +64,7 @@ class Enemy extends GridEntity with Destructible {
   @override
   void takeDamage(int amount, {bool propagate = true}) {
     if (propagate && isMounted) {
-      final game = findGame()! as MyGame;
-      final connected = _findConnectedEnemies(game);
+      final connected = _findConnectedEnemies(gameRef);
 
       for (final enemy in connected) {
         if (enemy != this) {
@@ -124,11 +121,12 @@ class Enemy extends GridEntity with Destructible {
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    // Determine color based on HP
-    Color color;
+    // Determine color/sprite based on HP
+    Color? color;
+    Sprite? sprite;
     switch (maxHp) {
       case 1:
-        color = const Color(0xFFFF0000); // Red
+        sprite = await gameRef.loadSprite('enemies/slime.png');
         break;
       case 2:
         color = const Color(0xFF800080); // Purple
@@ -141,12 +139,21 @@ class Enemy extends GridEntity with Destructible {
     }
 
     // Visual representation
-    visual = RectangleComponent(
-      size: size,
-      paint: Paint()..color = color,
-      anchor: Anchor.center,
-      position: size / 2,
-    );
+    if (sprite != null) {
+      visual = SpriteComponent(
+        sprite: sprite,
+        size: size,
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    } else {
+      visual = RectangleComponent(
+        size: size,
+        paint: Paint()..color = color ?? Colors.white,
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    }
     add(visual);
 
     // HP Bar

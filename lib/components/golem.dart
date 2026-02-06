@@ -18,7 +18,9 @@ class Golem extends Enemy {
   Future<void> onLoad() async {
     await super.onLoad();
     // Special Golem color (Grey)
-    visual.paint.color = Colors.grey;
+    if (visual is RectangleComponent) {
+      (visual as RectangleComponent).paint.color = Colors.grey;
+    }
     // Make Golem slightly larger
     visual.size = size * 1.1;
 
