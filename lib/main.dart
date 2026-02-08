@@ -42,9 +42,25 @@ class _MainNavigatorState extends State<MainNavigator> {
   void initState() {
     super.initState();
     _game = MyGame();
+    // Listen to game state changes for Game Over
+    _game.addListener(_handleGameStateChange);
+  }
+
+  @override
+  void dispose() {
+    _game.removeListener(_handleGameStateChange);
+    super.dispose();
+  }
+
+  void _handleGameStateChange() {
+    // If game has started but player HP hits 0, trigger result screen
+    if (_game.isGameStarted && _game.player.hp <= 0) {
+      _navigateTo('Result');
+    }
   }
 
   void _navigateTo(String route) {
+    if (!mounted) return;
     setState(() {
       _currentRoute = route;
     });
@@ -57,7 +73,7 @@ class _MainNavigatorState extends State<MainNavigator> {
         return LobbyScreen(
           onStartPressed: () {
             _game.resetGame();
-            _game.isGameStarted = true;
+            _game.startGame();
             _navigateTo('Game');
           },
           onSettingsPressed: () => _navigateTo('Settings'),
@@ -67,42 +83,34 @@ class _MainNavigatorState extends State<MainNavigator> {
       case 'Game':
         return Scaffold(
           backgroundColor: const Color(0xFF1A1A1A),
-          body: ListenableBuilder(
-            listenable: _game,
-            builder: (context, _) {
-              if (_game.player.hp <= 0 && _game.isGameStarted) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _game.onGameOver();
-                  _navigateTo('Result');
-                });
-              }
-              return Column(
-                children: [
-                  HudHeader(game: _game),
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white12, width: 2),
-                          ),
-                          child: GameWidget(game: _game),
-                        ),
+          body: Column(
+            children: [
+              HudHeader(game: _game),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white12, width: 2),
                       ),
+                      child: GameWidget(game: _game),
                     ),
                   ),
-                  HudFooter(game: _game),
-                ],
-              );
-            },
+                ),
+              ),
+              HudFooter(game: _game),
+            ],
           ),
         );
       case 'Result':
         return ResultScreen(
           score: _game.scoreEngine.total,
           stage: _game.scoreEngine.stageProgress,
-          onHome: () => _navigateTo('Lobby'),
+          onHome: () {
+            _game.resetGame();
+            _navigateTo('Lobby');
+          },
         );
       default:
         return const Center(child: Text('Unknown Route'));
