@@ -6,6 +6,7 @@ import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/game.dart';
 import 'package:under_dig/components/grid_entity.dart';
 import 'package:under_dig/components/hp_bar.dart';
+import 'package:under_dig/managers/effect_manager.dart';
 
 class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
   late PositionComponent visual;
@@ -30,6 +31,12 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     gameRef.comboTracker.increment();
     hpBar.removeFromParent();
     removeHpIndicator();
+
+    // Trigger Particle Effect
+    Color particleColor = Colors.red;
+    if (maxHp == 2) particleColor = Colors.purple;
+    if (maxHp == 3) particleColor = Colors.black;
+    EffectManager().triggerDeathParticles(gameRef, position, particleColor);
 
     if (_isVisualInitialized) {
       visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
