@@ -6,14 +6,13 @@ import 'package:under_dig/game.dart';
 
 class LevelManager extends Component {
   int _stageProgress = 0;
-  late SpawnController _spawnController;
+  final SpawnController _spawnController = SpawnController(initialStageProgress: 0);
 
   int get stageProgress => _stageProgress;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _spawnController = SpawnController(initialStageProgress: _stageProgress);
     _drawGrid();
   }
 

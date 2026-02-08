@@ -30,6 +30,11 @@ mixin Destructible on GridEntity {
     add(_hpText!);
   }
 
+  void removeHpIndicator() {
+    _hpText?.removeFromParent();
+    _hpText = null;
+  }
+
   void _updateHpIndicator() {
     _hpText?.text = '$hp';
   }

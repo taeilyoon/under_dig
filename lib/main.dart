@@ -68,11 +68,11 @@ class _MainNavigatorState extends State<MainNavigator> {
         return Scaffold(
           backgroundColor: const Color(0xFF1A1A1A),
           body: ListenableBuilder(
-            listenable: _game.scoreEngine,
+            listenable: _game,
             builder: (context, _) {
               if (_game.player.hp <= 0 && _game.isGameStarted) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _game.isGameStarted = false;
+                  _game.onGameOver();
                   _navigateTo('Result');
                 });
               }
@@ -81,19 +81,13 @@ class _MainNavigatorState extends State<MainNavigator> {
                   HudHeader(game: _game),
                   Expanded(
                     child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: AspectRatio(
-                          aspectRatio: 1.0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.white12,
-                                width: 2,
-                              ),
-                            ),
-                            child: GameWidget(game: _game),
+                      child: AspectRatio(
+                        aspectRatio: 1.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white12, width: 2),
                           ),
+                          child: GameWidget(game: _game),
                         ),
                       ),
                     ),

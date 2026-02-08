@@ -6,6 +6,9 @@ import 'package:under_dig/game.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/components/enemy.dart';
 import 'package:under_dig/components/hp_bar.dart';
+import 'package:under_dig/components/key_object.dart';
+import 'package:under_dig/components/door_object.dart';
+import 'package:under_dig/components/grid_entity.dart';
 
 class Player extends PositionComponent
     with KeyboardHandler, HasGameRef<MyGame> {
@@ -16,27 +19,24 @@ class Player extends PositionComponent
   int maxHp = 10;
   int attackPower = 1;
 
-  // Visual components
   late PositionComponent visual;
   late HpBarComponent _hpBar;
+  bool _isVisualInitialized = false;
 
   Player() : super(size: Vector2.all(GridSystem.tileSize * 0.8));
 
   void takeDamage(int amount) {
     hp -= amount;
     _hpBar.updateHp(hp);
-    print("Player took $amount damage! HP: $hp");
-
-    // Simple damage flash effect
-    visual.add(
-      ColorEffect(
-        Colors.red,
-        EffectController(duration: 0.1, reverseDuration: 0.1),
-      ),
-    );
-
+    if (_isVisualInitialized) {
+      visual.add(
+        ColorEffect(
+          Colors.red,
+          EffectController(duration: 0.1, reverseDuration: 0.1),
+        ),
+      );
+    }
     if (hp <= 0) {
-      print("GAME OVER");
       gameRef.onGameOver();
     }
   }
@@ -44,64 +44,58 @@ class Player extends PositionComponent
   void heal(int amount) {
     hp = (hp + amount).clamp(0, maxHp);
     _hpBar.updateHp(hp);
-    print("Player healed $amount! Current HP: $hp");
-
-    // Heal flash effect
-    visual.add(
-      ColorEffect(
-        Colors.green,
-        EffectController(duration: 0.1, reverseDuration: 0.1),
-      ),
-    );
+    if (_isVisualInitialized) {
+      visual.add(
+        ColorEffect(
+          Colors.green,
+          EffectController(duration: 0.1, reverseDuration: 0.1),
+        ),
+      );
+    }
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    // Set initial position
-    gridX = 0;
-    gridY = 0;
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    // Load Sprite
-    final sprite = await gameRef.loadSprite('player/attack_down.png');
-    visual = SpriteComponent(
-      sprite: sprite,
-      size: size,
-      anchor: Anchor.center,
-      position: size / 2,
-    );
+    try {
+      final sprite = await gameRef.loadSprite('player/attack_down.png');
+      visual = SpriteComponent(
+        sprite: sprite,
+        size: size,
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    } catch (e) {
+      visual = RectangleComponent(
+        size: size,
+        paint: Paint()..color = Colors.blue,
+        anchor: Anchor.center,
+        position: size / 2,
+      );
+    }
+    _isVisualInitialized = true;
     add(visual);
 
-    // 2. Add HP Bar
     _hpBar = HpBarComponent(
       maxHp: maxHp.toDouble(),
       currentHp: hp.toDouble(),
       width: size.x,
       height: 6,
     );
-    _hpBar.position = Vector2(0, -10); // Position above the player
+    _hpBar.position = Vector2(0, size.y / 2 + 8);
     add(_hpBar);
   }
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent) {
-      if (keysPressed.contains(LogicalKeyboardKey.arrowUp)) {
-        move(0, -1);
-        return true;
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowDown)) {
-        move(0, 1);
-        return true;
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) {
-        move(-1, 0);
-        return true;
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowRight)) {
-        move(1, 0);
-        return true;
-      }
+      if (keysPressed.contains(LogicalKeyboardKey.arrowUp)) move(0, -1);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowDown)) move(0, 1);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) move(-1, 0);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowRight)) move(1, 0);
     }
     return super.onKeyEvent(event, keysPressed);
   }
@@ -112,46 +106,35 @@ class Player extends PositionComponent
 
     if (GridSystem.isValid(newX, newY)) {
       final target = gameRef.getDestructibleAt(newX, newY);
-
       if (target != null) {
-        // Bump Combat!
         _performBumpAnimation(dx, dy);
-
         target.takeDamage(attackPower);
-
-        if (target is Enemy) {
-          if (target.hp > 0) {
-            takeDamage(target.attackPower);
-          }
-        }
-
+        if (target is Enemy && target.hp > 0) takeDamage(target.attackPower);
         gameRef.advanceStep();
         return;
       }
 
+      final otherComponents = gameRef.children.whereType<GridEntity>();
+      for (final comp in otherComponents) {
+        if (comp.gridX == newX && comp.gridY == newY) {
+          if (comp is KeyObject) {
+            comp.collect();
+          } else if (comp is DoorObject) {
+            comp.tryEnter();
+            return; 
+          }
+        }
+      }
+
       gridX = newX;
       gridY = newY;
-
-      // Move Animation
       final targetPosition = GridSystem.gridToWorld(gridX, gridY);
-      add(
-        MoveEffect.to(
-          targetPosition,
-          EffectController(duration: 0.1, curve: Curves.easeInOut),
-        ),
-      );
-
+      add(MoveEffect.to(targetPosition, EffectController(duration: 0.1, curve: Curves.easeInOut)));
       gameRef.advanceStep();
     }
   }
 
   void _performBumpAnimation(int dx, int dy) {
-    final bumpVector = Vector2(dx.toDouble(), dy.toDouble()) * 10;
-    add(
-      MoveEffect.by(
-        bumpVector,
-        EffectController(duration: 0.05, reverseDuration: 0.05),
-      ),
-    );
+    add(MoveEffect.by(Vector2(dx.toDouble(), dy.toDouble()) * 10, EffectController(duration: 0.05, reverseDuration: 0.05)));
   }
 }
