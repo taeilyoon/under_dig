@@ -64,25 +64,36 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   }
 
   void _updateCamera() {
-    final gridWidth = GridSystem.cols * GridSystem.tileSize;
-    final gridHeight = GridSystem.rows * GridSystem.tileSize;
+    final gridWidth = GridSystem.cols * GridSystem.tileSize; // 512
+    final gridHeight = GridSystem.rows * GridSystem.tileSize; // 512
 
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
 
-    // Strict Responsive Scaling
-    const double hPadding = 60.0;
-    const double vPadding = 260.0;
+    // INCREASE PADDING to ensure visibility on all phones
+    const double hPadding = 100.0;
+    const double vPadding = 350.0;
 
-    final zoomX = (size.x - hPadding) / gridWidth;
-    final zoomY = (size.y - vPadding) / gridHeight;
+    final availableWidth = size.x - hPadding;
+    final availableHeight = size.y - vPadding;
 
+    if (availableWidth <= 0 || availableHeight <= 0) return;
+
+    final zoomX = availableWidth / gridWidth;
+    final zoomY = availableHeight / gridHeight;
+
+    // Use a conservative zoom to fit the board
     camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.2, 3.0);
 
-    const double headerSpace = 100.0;
-    const double footerSpace = 160.0;
-    final visualShift = (headerSpace - footerSpace) / 2;
+    // Shift camera vertically to center between HUD elements
+    const double headerHeight = 110.0;
+    const double footerHeight = 180.0;
+    final visualShift = (headerHeight - footerHeight) / 2;
     camera.viewfinder.position.y -= (visualShift / camera.viewfinder.zoom);
+
+    print(
+      "Camera Updated: ScreenSize(${size.x}, ${size.y}), Zoom(${camera.viewfinder.zoom})",
+    );
   }
 
   @override
