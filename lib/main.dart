@@ -47,43 +47,50 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
-      body: Stack(
-        children: [
-          // 1. Physical Layout Layer (Game Board & Basic HUD)
-          Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
             children: [
-              HudHeader(game: _game),
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: AspectRatio(
-                      aspectRatio: 1.0, // Force square for 8x8 grid
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white12, width: 2),
+              // 1. Physical Layout Layer (Game Board & Basic HUD)
+              Column(
+                children: [
+                  HudHeader(game: _game),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: AspectRatio(
+                          aspectRatio: 1.0, // Force square for 8x8 grid
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.white12,
+                                width: 2,
+                              ),
+                            ),
+                            child: GameWidget(game: _game),
+                          ),
                         ),
-                        child: GameWidget(game: _game),
                       ),
                     ),
                   ),
-                ),
+                  HudFooter(game: _game),
+                ],
               ),
-              HudFooter(game: _game),
-            ],
-          ),
 
-          // 2. Interactive Overlays Layer (Lobby, Settings, Result)
-          GameWidget<MyGame>(
-            game: _game,
-            overlayBuilderMap: {
-              'Lobby': (context, game) => LobbyOverlay(game: game),
-              'Settings': (context, game) => SettingsOverlay(game: game),
-              'Result': (context, game) => ResultOverlay(game: game),
-            },
-            initialActiveOverlays: const ['Lobby'],
-          ),
-        ],
+              // 2. Interactive Overlays Layer (Lobby, Settings, Result)
+              GameWidget<MyGame>(
+                game: _game,
+                overlayBuilderMap: {
+                  'Lobby': (context, game) => LobbyOverlay(game: game),
+                  'Settings': (context, game) => SettingsOverlay(game: game),
+                  'Result': (context, game) => ResultOverlay(game: game),
+                },
+                initialActiveOverlays: const ['Lobby'],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
