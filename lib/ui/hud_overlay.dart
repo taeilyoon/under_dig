@@ -40,38 +40,20 @@ class _HudHeaderState extends State<HudHeader> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStatCard(
-              'HP',
-              '${widget.game.player.hp}',
-              Colors.redAccent,
-              Icons.favorite,
-            ),
+            _buildStatCard('HP', '${widget.game.player.hp}', Colors.redAccent, Icons.favorite),
             const SizedBox(width: 4),
-            _buildStatCard(
-              'STAGE',
-              '${widget.game.scoreEngine.stageProgress}',
-              Colors.blueAccent,
-              Icons.layers,
-            ),
+            _buildStatCard('STAGE', '${widget.game.scoreEngine.stageProgress}', Colors.blueAccent, Icons.layers),
             const SizedBox(width: 4),
-            _buildStatCard(
-              'SCORE',
-              '${widget.game.scoreEngine.total}',
-              Colors.amber,
-              Icons.monetization_on,
-            ),
+            _buildStatCard('KEY', '${widget.game.scoreEngine.keys}', Colors.yellowAccent, Icons.vpn_key),
+            const SizedBox(width: 4),
+            _buildStatCard('SCORE', '${widget.game.scoreEngine.total}', Colors.amber, Icons.monetization_on),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(
-    String label,
-    String value,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -86,25 +68,11 @@ class _HudHeaderState extends State<HudHeader> {
             children: [
               Icon(icon, size: 12, color: color),
               const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color.withOpacity(0.8),
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -150,14 +118,7 @@ class _HudFooterState extends State<HudFooter> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'INVENTORY',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 10,
-                letterSpacing: 1.5,
-              ),
-            ),
+            const Text('INVENTORY', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1.5)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -170,13 +131,9 @@ class _HudFooterState extends State<HudFooter> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: item != null ? Colors.white70 : Colors.white10,
-                    ),
+                    border: Border.all(color: item != null ? Colors.white70 : Colors.white10),
                   ),
-                  child: item != null
-                      ? const Icon(Icons.star, color: Colors.white, size: 20)
-                      : null,
+                  child: item != null ? const Icon(Icons.star, color: Colors.white, size: 20) : null,
                 );
               }),
             ),

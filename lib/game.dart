@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
@@ -9,6 +10,8 @@ import 'package:under_dig/components/archer.dart';
 import 'package:under_dig/components/golem.dart';
 import 'package:under_dig/components/breakable_block.dart';
 import 'package:under_dig/components/potion_object.dart';
+import 'package:under_dig/components/key_object.dart';
+import 'package:under_dig/components/door_object.dart';
 import 'package:under_dig/managers/level_manager.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
@@ -17,14 +20,15 @@ import 'package:under_dig/ui/combo_tracker.dart';
 import 'package:under_dig/item/inventory.dart';
 import 'package:under_dig/managers/buff_manager.dart';
 
-class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
+class MyGame extends FlameGame
+    with HasKeyboardHandlerComponents, PanDetector, ChangeNotifier {
   Player? _player;
   Player get player {
     _player ??= Player();
     return _player!;
   }
 
-  late LevelManager levelManager;
+  final LevelManager levelManager = LevelManager();
   bool isGameStarted = false;
 
   final ScoreEngine scoreEngine = ScoreEngine();
@@ -40,13 +44,16 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   double _lastInputTime = 0.0;
   static const double _inputCooldown = 0.15;
 
+  int _turnCount = 0;
+  bool _keySpawned = false;
+  bool _doorSpawned = false;
+
   @override
   Color backgroundColor() => const Color(0xFF1A1A1A);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    levelManager = LevelManager();
     add(levelManager);
     add(player);
     _initialSpawns();
@@ -55,22 +62,11 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   void _updateCamera() {
     if (!isMounted) return;
-
-    // Grid 512x512
+    const double internalWidth = 512.0;
     camera.viewfinder.position = Vector2(256, 256);
     camera.viewfinder.anchor = Anchor.center;
-
-    // RESPONSIVE LOGIC: Force width to fit
-    final zoomX = (size.x * 0.95) / 512.0;
-    final zoomY = (size.y - 320) / 512.0;
-
-    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.1, 3.0);
-
-    // Position board between HUD areas
-    const headerH = 110.0;
-    const footerH = 180.0;
-    final shift = (headerH - footerH) / 2;
-    camera.viewfinder.position.y -= (shift / camera.viewfinder.zoom);
+    final zoomFactor = size.x / internalWidth;
+    camera.viewfinder.zoom = zoomFactor;
   }
 
   @override
@@ -92,23 +88,19 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     if (!isGameStarted) return;
     super.update(dt);
     comboTracker.tick((dt * 1000).toInt());
-    if (_player != null && _player!.gridY >= GridSystem.rows - 1)
-      advanceStage();
   }
+
+  void notifyUi() => notifyListeners();
 
   void startGame() {
     isGameStarted = true;
-    overlays.remove('Lobby');
-    overlays.add('HudHeader');
-    overlays.add('HudFooter');
     _updateCamera();
+    notifyListeners();
   }
 
   void onGameOver() {
     isGameStarted = false;
-    overlays.remove('HudHeader');
-    overlays.remove('HudFooter');
-    overlays.add('Result');
+    notifyListeners();
   }
 
   void resetGame() {
@@ -118,6 +110,9 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     inventory.clear();
     buffManager.clear();
     levelManager.reset();
+    _turnCount = 0;
+    _keySpawned = false;
+    _doorSpawned = false;
     if (_player != null) {
       _player!.hp = 10;
       _player!.gridX = 0;
@@ -126,21 +121,35 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     }
     for (var d in _destructibles) (d as Component).removeFromParent();
     _destructibles.clear();
+    
+    children.whereType<KeyObject>().forEach((k) => k.removeFromParent());
+    children.whereType<DoorObject>().forEach((d) => d.removeFromParent());
+
     _initialSpawns();
+    notifyListeners();
   }
 
   void advanceStage() {
     levelManager.advanceStage();
+    _turnCount = 0;
+    _keySpawned = false;
+    _doorSpawned = false;
     for (var d in _destructibles) (d as Component).removeFromParent();
     _destructibles.clear();
+    
+    children.whereType<KeyObject>().forEach((k) => k.removeFromParent());
+    children.whereType<DoorObject>().forEach((d) => d.removeFromParent());
+
     if (_player != null) {
       _player!.gridY = 0;
       _player!.position = GridSystem.gridToWorld(_player!.gridX, 0);
     }
     _initialSpawns();
+    notifyListeners();
   }
 
   void advanceStep() {
+    _turnCount++;
     buffManager.updateBuffs();
     _destructibles.removeWhere((d) => (d as Component).parent == null);
     final actors = _destructibles
@@ -156,6 +165,30 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
       }
     }
     spawnEnemyAtTop();
+
+    // Spawn Key after 50 turns and Door after 100 turns
+    if (_turnCount >= 50 && !_keySpawned) {
+      _spawnRandomly<KeyObject>((x, y) => add(KeyObject(gridX: x, gridY: y)));
+      _keySpawned = true;
+    }
+    if (_turnCount >= 100 && !_doorSpawned) {
+      _spawnRandomly<DoorObject>((x, y) => add(DoorObject(gridX: x, gridY: y)));
+      _doorSpawned = true;
+    }
+
+    notifyListeners();
+  }
+
+  void _spawnRandomly<T>(void Function(int x, int y) spawnFunc) {
+    final random = Random();
+    for (int i = 0; i < 20; i++) {
+      int x = random.nextInt(GridSystem.cols);
+      int y = random.nextInt(GridSystem.rows);
+      if (getDestructibleAt(x, y) == null && (player.gridX != x || player.gridY != y)) {
+        spawnFunc(x, y);
+        break;
+      }
+    }
   }
 
   void spawnEnemyAtTop() {

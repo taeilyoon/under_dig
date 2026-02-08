@@ -3,7 +3,12 @@ import 'package:flame/components.dart';
 class GridSystem {
   static const int rows = 8;
   static const int cols = 8;
-  static const double tileSize = 64.0; // Back to fixed size for stability
+  static double tileSize = 64.0;
+
+  static void init(double availableWidth) {
+    // Fill 100% of the available widget width
+    tileSize = availableWidth / cols;
+  }
 
   static Vector2 gridToWorld(int x, int y) {
     return Vector2(x * tileSize + tileSize / 2, y * tileSize + tileSize / 2);

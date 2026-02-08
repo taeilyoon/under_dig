@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:under_dig/mixins/destructible.dart';
 import 'package:under_dig/systems/grid_system.dart';
 import 'package:under_dig/game.dart';
-
 import 'package:under_dig/components/grid_entity.dart';
 import 'package:under_dig/components/hp_bar.dart';
 
 class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
-  // Visual component
   late PositionComponent visual;
   late HpBarComponent hpBar;
+  bool _isVisualInitialized = false;
 
   Enemy({
     required super.gridX,
@@ -29,51 +28,27 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
     gameRef.scoreEngine.onKill();
     gameRef.scoreEngine.onComboIncrement();
     gameRef.comboTracker.increment();
-
-    // Remove UI elements immediately so they don't linger during animation
     hpBar.removeFromParent();
+    removeHpIndicator();
 
-    // Death Animation: Scale down and fade
-
-    visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
-    visual.add(
-      OpacityEffect.to(
-        0,
-        EffectController(duration: 0.2),
-        onComplete: () => removeFromParent(),
-      ),
-    );
+    if (_isVisualInitialized) {
+      visual.add(ScaleEffect.to(Vector2.all(0), EffectController(duration: 0.2)));
+      visual.add(OpacityEffect.to(0, EffectController(duration: 0.2), onComplete: () => removeFromParent()));
+    } else {
+      removeFromParent();
+    }
   }
 
   void onStep() {
     if (!isMounted) return;
-
-    // Calculate new position (Down 1)
     int nextX = gridX;
     int nextY = gridY + 1;
-
-    // 1. Check Collision with Player
-    if (gameRef.player.gridX == nextX && gameRef.player.gridY == nextY) {
-      return;
-    }
-
-    // 2. Check collisions with other blocks/enemies
-    if (gameRef.getDestructibleAt(nextX, nextY) != null) {
-      return;
-    }
-
-    // 3. Move if valid
+    if (gameRef.player.gridX == nextX && gameRef.player.gridY == nextY) return;
+    if (gameRef.getDestructibleAt(nextX, nextY) != null) return;
     if (GridSystem.isValid(nextX, nextY)) {
       gridY = nextY;
-
-      // Move Animation
       final targetPosition = GridSystem.gridToWorld(gridX, gridY);
-      add(
-        MoveEffect.to(
-          targetPosition,
-          EffectController(duration: 0.15, curve: Curves.easeInOut),
-        ),
-      );
+      add(MoveEffect.to(targetPosition, EffectController(duration: 0.15, curve: Curves.easeInOut)));
     }
   }
 
@@ -81,44 +56,26 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
   void takeDamage(int amount, {bool propagate = true}) {
     if (propagate && isMounted) {
       final connected = _findConnectedEnemies(gameRef);
-
       for (final enemy in connected) {
-        if (enemy != this) {
-          enemy.takeDamage(amount, propagate: false);
-        }
+        if (enemy != this) enemy.takeDamage(amount, propagate: false);
       }
     }
     super.takeDamage(amount, propagate: propagate);
     hpBar.updateHp(hp);
-
-    // Damage Flash
-    visual.add(
-      ColorEffect(
-        Colors.red,
-        EffectController(duration: 0.05, reverseDuration: 0.05),
-      ),
-    );
+    if (_isVisualInitialized) {
+      visual.add(ColorEffect(Colors.red, EffectController(duration: 0.05, reverseDuration: 0.05)));
+    }
   }
 
   Set<Enemy> _findConnectedEnemies(MyGame game) {
     Set<Enemy> visited = {};
     List<Enemy> queue = [this];
     visited.add(this);
-
     while (queue.isNotEmpty) {
       final current = queue.removeAt(0);
-
-      final neighbors = [
-        _getEnemyAt(game, current.gridX, current.gridY - 1),
-        _getEnemyAt(game, current.gridX, current.gridY + 1),
-        _getEnemyAt(game, current.gridX - 1, current.gridY),
-        _getEnemyAt(game, current.gridX + 1, current.gridY),
-      ];
-
+      final neighbors = [_getEnemyAt(game, current.gridX, current.gridY - 1), _getEnemyAt(game, current.gridX, current.gridY + 1), _getEnemyAt(game, current.gridX - 1, current.gridY), _getEnemyAt(game, current.gridX + 1, current.gridY)];
       for (final neighbor in neighbors) {
-        if (neighbor != null &&
-            neighbor.maxHp == maxHp && // Same Type/Color
-            !visited.contains(neighbor)) {
+        if (neighbor != null && neighbor.maxHp == maxHp && !visited.contains(neighbor)) {
           visited.add(neighbor);
           queue.add(neighbor);
         }
@@ -129,61 +86,30 @@ class Enemy extends GridEntity with Destructible, HasGameRef<MyGame> {
 
   Enemy? _getEnemyAt(MyGame game, int x, int y) {
     final target = game.getDestructibleAt(x, y);
-    if (target is Enemy) {
-      return target;
-    }
-    return null;
+    return target is Enemy ? target : null;
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
     position = GridSystem.gridToWorld(gridX, gridY);
     anchor = Anchor.center;
 
-    Color? color;
-    Sprite? sprite;
-    switch (maxHp) {
-      case 1:
-        sprite = await gameRef.loadSprite('enemies/slime.png');
-        break;
-      case 2:
-        color = const Color(0xFF800080); // Purple
-        break;
-      case 3:
-        color = const Color(0xFF000000); // Black
-        break;
-      default:
-        color = const Color(0xFF00FF00); // Green (Debug)
+    try {
+      final sprite = await gameRef.loadSprite('enemies/slime.png');
+      visual = SpriteComponent(sprite: sprite, size: size, anchor: Anchor.center, position: size / 2);
+    } catch (e) {
+      Color color = Colors.red;
+      if (maxHp == 2) color = Colors.purple;
+      if (maxHp == 3) color = Colors.black;
+      visual = RectangleComponent(size: size, paint: Paint()..color = color, anchor: Anchor.center, position: size / 2);
     }
-
-    if (sprite != null) {
-      visual = SpriteComponent(
-        sprite: sprite,
-        size: size,
-        anchor: Anchor.center,
-        position: size / 2,
-      );
-    } else {
-      visual = RectangleComponent(
-        size: size,
-        paint: Paint()..color = color ?? Colors.white,
-        anchor: Anchor.center,
-        position: size / 2,
-      );
-    }
+    _isVisualInitialized = true;
     add(visual);
 
-    hpBar = HpBarComponent(
-      maxHp: maxHp.toDouble(),
-      currentHp: hp.toDouble(),
-      width: size.x,
-      height: 4,
-    );
-    hpBar.position = Vector2(0, -size.y / 2 - 5);
+    hpBar = HpBarComponent(maxHp: maxHp.toDouble(), currentHp: hp.toDouble(), width: size.x, height: 4);
+    hpBar.position = Vector2(0, size.y / 2 + 5);
     add(hpBar);
-
     addHpIndicator();
   }
 }
