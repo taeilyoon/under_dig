@@ -38,7 +38,7 @@ class _HudHeaderState extends State<HudHeader> {
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildStatCard(
               'HP',
@@ -46,12 +46,14 @@ class _HudHeaderState extends State<HudHeader> {
               Colors.redAccent,
               Icons.favorite,
             ),
+            const SizedBox(width: 4),
             _buildStatCard(
               'STAGE',
               '${widget.game.scoreEngine.stageProgress}',
               Colors.blueAccent,
               Icons.layers,
             ),
+            const SizedBox(width: 4),
             _buildStatCard(
               'SCORE',
               '${widget.game.scoreEngine.total}',

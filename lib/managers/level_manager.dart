@@ -50,20 +50,37 @@ class LevelManager extends Component {
         );
         add(tile);
       }
+    }
 
-      // Add a visible border around the entire board (512x512)
-      final border = RectangleComponent(
-        position: Vector2.zero(),
-        size: Vector2(
-          GridSystem.cols * GridSystem.tileSize,
-          GridSystem.rows * GridSystem.tileSize,
+    // Add a visible border around the entire board (512x512)
+    final border = RectangleComponent(
+      position: Vector2.zero(),
+      size: Vector2(
+        GridSystem.cols * GridSystem.tileSize,
+        GridSystem.rows * GridSystem.tileSize,
+      ),
+      paint: Paint()
+        ..color = Colors.white24
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    add(border);
+
+    // Add Column Numbers (1-8) for visual verification
+    for (int x = 0; x < GridSystem.cols; x++) {
+      add(
+        TextComponent(
+          text: '${x + 1}',
+          position: Vector2(
+            x * GridSystem.tileSize + GridSystem.tileSize / 2,
+            -15,
+          ),
+          anchor: Anchor.bottomCenter,
+          textRenderer: TextPaint(
+            style: const TextStyle(color: Colors.white60, fontSize: 16),
+          ),
         ),
-        paint: Paint()
-          ..color = Colors.white24
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
       );
-      add(border);
     }
   }
 
