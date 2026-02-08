@@ -28,6 +28,11 @@ class LevelManager extends Component {
     print('Current Difficulty: ${_spawnController.curve.enemyRate}');
   }
 
+  void reset() {
+    _stageProgress = 0;
+    _spawnController.updateStage(0);
+  }
+
   void _drawGrid() {
     // Checkerboard pattern
     for (int y = 0; y < GridSystem.rows; y++) {

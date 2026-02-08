@@ -36,8 +36,12 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   Vector2? _dragStart;
   bool _hasSwiped = false;
-  static const double _swipeThreshold =
-      25.0; // Lower threshold for better response
+  static const double _swipeThreshold = 25.0;
+
+  // Input debouncing
+  double _lastInputTime = 0.0;
+  static const double _inputCooldown = 0.15;
+
   // Turn System
   double _timeSinceLastStep = 0.0;
   static const double _stepThreshold = 2.0;
@@ -49,18 +53,13 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // 1. Add Level (Grid Background)
     levelManager = LevelManager();
     add(levelManager);
 
-    // 2. Add Player
     _player = Player();
     add(_player);
 
-    // Initial Spawns
     _initialSpawns();
-
-    // Setup Camera to center the 8x8 grid
     _updateCamera();
   }
 
@@ -71,31 +70,25 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     camera.viewfinder.position = Vector2(gridWidth / 2, gridHeight / 2);
     camera.viewfinder.anchor = Anchor.center;
 
-    // Responsive Zoom:
-    // We want the grid to fit within the screen while leaving room for the UI.
-    // Phones are usually tall (Portrait), so zoomY (height) is the limiting factor for spacing,
-    // but zoomX (width) might be the limiting factor for the grid itself.
+    // Strict Responsive Scaling
+    const double hPadding = 60.0;
+    const double vPadding = 260.0;
 
-    const double paddingX = 40.0;
-    const double paddingY = 250.0; // More space for Header and Footer
+    final zoomX = (size.x - hPadding) / gridWidth;
+    final zoomY = (size.y - vPadding) / gridHeight;
 
-    final availableWidth = size.x - paddingX;
-    final availableHeight = size.y - paddingY;
+    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.2, 3.0);
 
-    final zoomX = availableWidth / gridWidth;
-    final zoomY = availableHeight / gridHeight;
-
-    // Use the smaller zoom to ensure it fits both ways,
-    // and lower the clamp floor to 0.3 for very small screens.
-    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.3, 3.0);
+    const double headerSpace = 100.0;
+    const double footerSpace = 160.0;
+    final visualShift = (headerSpace - footerSpace) / 2;
+    camera.viewfinder.position.y -= (visualShift / camera.viewfinder.zoom);
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
-    if (isMounted) {
-      _updateCamera();
-    }
+    if (isMounted) _updateCamera();
   }
 
   void _initialSpawns() {
@@ -110,25 +103,22 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   void update(double dt) {
     if (!isGameStarted) return;
     super.update(dt);
-
-    // Update combo timer
     comboTracker.tick((dt * 1000).toInt());
-
     _timeSinceLastStep += dt;
-    if (_timeSinceLastStep >= _stepThreshold) {
-      advanceStep();
-    }
+    if (_timeSinceLastStep >= _stepThreshold) advanceStep();
   }
 
   void startGame() {
     isGameStarted = true;
     overlays.remove('Lobby');
-    overlays.add('HUD');
+    overlays.add('HudHeader');
+    overlays.add('HudFooter');
   }
 
   void onGameOver() {
     isGameStarted = false;
-    overlays.remove('HUD');
+    overlays.remove('HudHeader');
+    overlays.remove('HudFooter');
     overlays.add('Result');
   }
 
@@ -138,16 +128,24 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     comboTracker.reset();
     inventory.clear();
     buffManager.clear();
+    levelManager.reset();
 
     _player.hp = 10;
     _player.gridX = 0;
     _player.gridY = 0;
     _player.position = GridSystem.gridToWorld(0, 0);
 
-    for (var d in _destructibles) {
-      (d as Component).removeFromParent();
-    }
+    for (var d in _destructibles) (d as Component).removeFromParent();
     _destructibles.clear();
+    _initialSpawns();
+  }
+
+  void advanceStage() {
+    levelManager.advanceStage();
+    for (var d in _destructibles) (d as Component).removeFromParent();
+    _destructibles.clear();
+    _player.gridY = 0;
+    _player.position = GridSystem.gridToWorld(_player.gridX, 0);
     _initialSpawns();
   }
 
@@ -156,45 +154,44 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     buffManager.updateBuffs();
     _destructibles.removeWhere((d) => (d as Component).parent == null);
 
+    if (_player.gridY >= GridSystem.rows - 1) {
+      advanceStage();
+      return;
+    }
+
     final actors = _destructibles
         .where((d) => d is Enemy || d is PotionObject)
         .toList();
-
     actors.sort((a, b) => b.gridY.compareTo(a.gridY));
 
     for (final actor in actors) {
       if (actor.hp > 0) {
-        if (actor is Enemy) {
+        if (actor is Enemy)
           actor.onStep();
-        } else if (actor is PotionObject) {
+        else if (actor is PotionObject)
           actor.onStep();
-        }
       }
     }
-
     spawnEnemyAtTop();
   }
 
   void spawnEnemyAtTop() {
     final random = Random();
     int attempts = 0;
-
     while (attempts < 10) {
       int x = random.nextInt(GridSystem.cols);
       if (_player.gridX == x && _player.gridY == 0) {
         attempts++;
         continue;
       }
-
       if (getDestructibleAt(x, 0) == null) {
         double roll = random.nextDouble();
-        if (roll < 0.1) {
+        if (roll < 0.1)
           spawnGolem(x, 0);
-        } else if (roll < 0.25) {
+        else if (roll < 0.25)
           spawnPotion(x, 0);
-        } else {
+        else
           spawnEnemy(x, 0, hp: random.nextInt(3) + 1);
-        }
         break;
       }
       attempts++;
@@ -243,11 +240,8 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
 
   Destructible? getDestructibleAt(int x, int y) {
     for (final obj in _destructibles) {
-      if ((obj as Component).parent != null &&
-          obj.gridX == x &&
-          obj.gridY == y) {
+      if ((obj as Component).parent != null && obj.gridX == x && obj.gridY == y)
         return obj;
-      }
     }
     return null;
   }
@@ -255,27 +249,25 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   @override
   void onPanStart(DragStartInfo info) {
     if (!isGameStarted) return;
-    _dragStart = info.eventPosition.global;
+    _dragStart = info.eventPosition.widget;
     _hasSwiped = false;
   }
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
-    if (_hasSwiped || _dragStart == null) return;
-    final currentPoint = info.eventPosition.global;
+    if (!isGameStarted || _hasSwiped || _dragStart == null) return;
+    final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    if (currentTime - _lastInputTime < _inputCooldown) return;
+
+    final currentPoint = info.eventPosition.widget;
     final delta = currentPoint - _dragStart!;
+
     if (delta.length > _swipeThreshold) {
-      bool isHorizontal = delta.x.abs() > delta.y.abs();
-      if (isHorizontal) {
-        if (delta.x > 0)
-          _player.move(1, 0);
-        else
-          _player.move(-1, 0);
+      _lastInputTime = currentTime;
+      if (delta.x.abs() > delta.y.abs()) {
+        _player.move(delta.x > 0 ? 1 : -1, 0);
       } else {
-        if (delta.y > 0)
-          _player.move(0, 1);
-        else
-          _player.move(0, -1);
+        _player.move(0, delta.y > 0 ? 1 : -1);
       }
       _hasSwiped = true;
     }
