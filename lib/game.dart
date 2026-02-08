@@ -18,8 +18,11 @@ import 'package:under_dig/item/inventory.dart';
 import 'package:under_dig/managers/buff_manager.dart';
 
 class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
-  late Player _player;
-  Player get player => _player;
+  Player? _player;
+  Player get player {
+    _player ??= Player();
+    return _player!;
+  }
 
   late LevelManager levelManager;
   bool isGameStarted = false;
@@ -43,12 +46,9 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
     levelManager = LevelManager();
     add(levelManager);
-
-    _player = Player();
-    add(_player);
+    add(player);
     _initialSpawns();
     _updateCamera();
   }
@@ -56,23 +56,21 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   void _updateCamera() {
     if (!isMounted) return;
 
-    // Grid System logic: 8 columns, 64px each = 512px width/height
-    const double boardSize = 512.0;
-
-    // 1. Center the camera on the board coordinates (256, 256)
-    camera.viewfinder.position = Vector2(boardSize / 2, boardSize / 2);
+    // Grid 512x512
+    camera.viewfinder.position = Vector2(256, 256);
     camera.viewfinder.anchor = Anchor.center;
 
-    // 2. [WIDGET-BASED ZOOM]
-    // The GameWidget size is now determined by the Flutter layout (Expanded/Center/AspectRatio).
-    // size.x is the width of the GameWidget in logical pixels.
-    // We simply fit the 512px board into the actual available widget width.
-    final zoomFactor = size.x / boardSize;
+    // RESPONSIVE LOGIC: Force width to fit
+    final zoomX = (size.x * 0.95) / 512.0;
+    final zoomY = (size.y - 320) / 512.0;
 
-    // Apply the calculated zoom to fill the widget area perfectly.
-    camera.viewfinder.zoom = zoomFactor;
+    camera.viewfinder.zoom = min(zoomX, zoomY).clamp(0.1, 3.0);
 
-    print("WIDGET-BASED CAMERA: WidgetWidth(${size.x}), Zoom($zoomFactor)");
+    // Position board between HUD areas
+    const headerH = 110.0;
+    const footerH = 180.0;
+    final shift = (headerH - footerH) / 2;
+    camera.viewfinder.position.y -= (shift / camera.viewfinder.zoom);
   }
 
   @override
@@ -94,7 +92,8 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     if (!isGameStarted) return;
     super.update(dt);
     comboTracker.tick((dt * 1000).toInt());
-    if (_player.gridY >= GridSystem.rows - 1) advanceStage();
+    if (_player != null && _player!.gridY >= GridSystem.rows - 1)
+      advanceStage();
   }
 
   void startGame() {
@@ -119,10 +118,12 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     inventory.clear();
     buffManager.clear();
     levelManager.reset();
-    _player.hp = 10;
-    _player.gridX = 0;
-    _player.gridY = 0;
-    _player.position = GridSystem.gridToWorld(0, 0);
+    if (_player != null) {
+      _player!.hp = 10;
+      _player!.gridX = 0;
+      _player!.gridY = 0;
+      _player!.position = GridSystem.gridToWorld(0, 0);
+    }
     for (var d in _destructibles) (d as Component).removeFromParent();
     _destructibles.clear();
     _initialSpawns();
@@ -132,8 +133,10 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     levelManager.advanceStage();
     for (var d in _destructibles) (d as Component).removeFromParent();
     _destructibles.clear();
-    _player.gridY = 0;
-    _player.position = GridSystem.gridToWorld(_player.gridX, 0);
+    if (_player != null) {
+      _player!.gridY = 0;
+      _player!.position = GridSystem.gridToWorld(_player!.gridX, 0);
+    }
     _initialSpawns();
   }
 
@@ -158,7 +161,7 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
   void spawnEnemyAtTop() {
     final random = Random();
     int x = random.nextInt(GridSystem.cols);
-    if (_player.gridX == x && _player.gridY == 0) return;
+    if (_player != null && _player!.gridX == x && _player!.gridY == 0) return;
     if (getDestructibleAt(x, 0) == null) {
       double roll = random.nextDouble();
       if (roll < 0.1)
@@ -234,10 +237,11 @@ class MyGame extends FlameGame with HasKeyboardHandlerComponents, PanDetector {
     final delta = currentPoint - _dragStart!;
     if (delta.length > _swipeThreshold) {
       _lastInputTime = currentTime;
-      if (delta.x.abs() > delta.y.abs())
-        _player.move(delta.x > 0 ? 1 : -1, 0);
-      else
-        _player.move(0, delta.y > 0 ? 1 : -1);
+      if (delta.x.abs() > delta.y.abs()) {
+        if (_player != null) _player!.move(delta.x > 0 ? 1 : -1, 0);
+      } else {
+        if (_player != null) _player!.move(0, delta.y > 0 ? 1 : -1);
+      }
       _hasSwiped = true;
     }
   }
