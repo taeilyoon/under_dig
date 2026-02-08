@@ -85,17 +85,21 @@ class Player extends PositionComponent
       width: size.x,
       height: 6,
     );
-    _hpBar.position = Vector2(0, size.y / 2 + 8);
+    _hpBar.position = Vector2(0, size.y / 2 + 10); // 캐릭터 하단으로 위치 변경
     add(_hpBar);
   }
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent) {
-      if (keysPressed.contains(LogicalKeyboardKey.arrowUp)) move(0, -1);
-      else if (keysPressed.contains(LogicalKeyboardKey.arrowDown)) move(0, 1);
-      else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) move(-1, 0);
-      else if (keysPressed.contains(LogicalKeyboardKey.arrowRight)) move(1, 0);
+      if (keysPressed.contains(LogicalKeyboardKey.arrowUp))
+        move(0, -1);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowDown))
+        move(0, 1);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft))
+        move(-1, 0);
+      else if (keysPressed.contains(LogicalKeyboardKey.arrowRight))
+        move(1, 0);
     }
     return super.onKeyEvent(event, keysPressed);
   }
@@ -121,7 +125,7 @@ class Player extends PositionComponent
             comp.collect();
           } else if (comp is DoorObject) {
             comp.tryEnter();
-            return; 
+            return;
           }
         }
       }
@@ -129,12 +133,22 @@ class Player extends PositionComponent
       gridX = newX;
       gridY = newY;
       final targetPosition = GridSystem.gridToWorld(gridX, gridY);
-      add(MoveEffect.to(targetPosition, EffectController(duration: 0.1, curve: Curves.easeInOut)));
+      add(
+        MoveEffect.to(
+          targetPosition,
+          EffectController(duration: 0.1, curve: Curves.easeInOut),
+        ),
+      );
       gameRef.advanceStep();
     }
   }
 
   void _performBumpAnimation(int dx, int dy) {
-    add(MoveEffect.by(Vector2(dx.toDouble(), dy.toDouble()) * 10, EffectController(duration: 0.05, reverseDuration: 0.05)));
+    add(
+      MoveEffect.by(
+        Vector2(dx.toDouble(), dy.toDouble()) * 10,
+        EffectController(duration: 0.05, reverseDuration: 0.05),
+      ),
+    );
   }
 }
