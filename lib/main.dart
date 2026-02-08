@@ -1,9 +1,9 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'game.dart';
-import 'ui/lobby_overlay.dart';
-import 'ui/settings_overlay.dart';
-import 'ui/result_overlay.dart';
+import 'ui/lobby_screen.dart';
+import 'ui/settings_screen.dart';
+import 'ui/result_screen.dart';
 import 'ui/hud_overlay.dart';
 
 void main() {
@@ -22,19 +22,20 @@ class UnderDigApp extends StatelessWidget {
         brightness: Brightness.dark,
         primarySwatch: Colors.amber,
       ),
-      home: const GamePage(),
+      home: const MainNavigator(),
     );
   }
 }
 
-class GamePage extends StatefulWidget {
-  const GamePage({super.key});
+class MainNavigator extends StatefulWidget {
+  const MainNavigator({super.key});
 
   @override
-  State<GamePage> createState() => _GamePageState();
+  State<MainNavigator> createState() => _MainNavigatorState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _MainNavigatorState extends State<MainNavigator> {
+  String _currentRoute = 'Lobby';
   late MyGame _game;
 
   @override
@@ -43,24 +44,47 @@ class _GamePageState extends State<GamePage> {
     _game = MyGame();
   }
 
+  void _navigateTo(String route) {
+    setState(() {
+      _currentRoute = route;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              // 1. Physical Layout Layer (Game Board & Basic HUD)
-              Column(
+    switch (_currentRoute) {
+      case 'Lobby':
+        return LobbyScreen(
+          onStartPressed: () {
+            _game.resetGame();
+            _game.isGameStarted = true;
+            _navigateTo('Game');
+          },
+          onSettingsPressed: () => _navigateTo('Settings'),
+        );
+      case 'Settings':
+        return SettingsScreen(onBack: () => _navigateTo('Lobby'));
+      case 'Game':
+        return Scaffold(
+          backgroundColor: const Color(0xFF1A1A1A),
+          body: ListenableBuilder(
+            listenable: _game.scoreEngine,
+            builder: (context, _) {
+              if (_game.player.hp <= 0 && _game.isGameStarted) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _game.isGameStarted = false;
+                  _navigateTo('Result');
+                });
+              }
+              return Column(
                 children: [
                   HudHeader(game: _game),
                   Expanded(
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: AspectRatio(
-                          aspectRatio: 1.0, // Force square for 8x8 grid
+                          aspectRatio: 1.0,
                           child: Container(
                             decoration: BoxDecoration(
                               border: Border.all(
@@ -76,22 +100,18 @@ class _GamePageState extends State<GamePage> {
                   ),
                   HudFooter(game: _game),
                 ],
-              ),
-
-              // 2. Interactive Overlays Layer (Lobby, Settings, Result)
-              GameWidget<MyGame>(
-                game: _game,
-                overlayBuilderMap: {
-                  'Lobby': (context, game) => LobbyOverlay(game: game),
-                  'Settings': (context, game) => SettingsOverlay(game: game),
-                  'Result': (context, game) => ResultOverlay(game: game),
-                },
-                initialActiveOverlays: const ['Lobby'],
-              ),
-            ],
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        );
+      case 'Result':
+        return ResultScreen(
+          score: _game.scoreEngine.total,
+          stage: _game.scoreEngine.stageProgress,
+          onHome: () => _navigateTo('Lobby'),
+        );
+      default:
+        return const Center(child: Text('Unknown Route'));
+    }
   }
 }
