@@ -50,6 +50,20 @@ class LevelManager extends Component {
         );
         add(tile);
       }
+
+      // Add a visible border around the entire board (512x512)
+      final border = RectangleComponent(
+        position: Vector2.zero(),
+        size: Vector2(
+          GridSystem.cols * GridSystem.tileSize,
+          GridSystem.rows * GridSystem.tileSize,
+        ),
+        paint: Paint()
+          ..color = Colors.white24
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      add(border);
     }
   }
 
